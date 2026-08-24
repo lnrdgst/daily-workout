@@ -9,7 +9,7 @@ import {
   loadAppState,
   saveAppState,
 } from '@/utils/storage';
-import type { ExerciseSetLog, WorkoutAppState, WorkoutId } from '@/types/workout';
+import type { ExerciseSetLog, WorkoutAppState, WorkoutId, WorkoutSessionHistory } from '@/types/workout';
 
 interface WorkoutStoreValue {
   state: WorkoutAppState;
@@ -19,6 +19,7 @@ interface WorkoutStoreValue {
   finishWorkout: () => void;
   discardDraft: () => void;
   clearHistory: () => void;
+  deleteHistoryEntry: (historyEntryId: string) => void;
   getPreviousExerciseSets: (exerciseId: string) => ExerciseSetLog[] | null;
 }
 
@@ -135,6 +136,21 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
           history: [],
           lastCompletedWorkoutId: null,
         }));
+      },
+      deleteHistoryEntry: (historyEntryId) => {
+        const history = state.history.filter((entry) => entry.id !== historyEntryId);
+        const latestEntry = history.reduce<WorkoutSessionHistory | null>(
+          (latest, entry) => (!latest || entry.finishedAt > latest.finishedAt ? entry : latest),
+          null,
+        );
+        const nextState: WorkoutAppState = {
+          ...state,
+          history,
+          lastCompletedWorkoutId: latestEntry?.workoutId ?? null,
+        };
+
+        saveAppState(nextState);
+        setState(nextState);
       },
       getPreviousExerciseSets: (exerciseId) => getPreviousExercisePerformance(state.history, exerciseId),
     };

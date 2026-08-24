@@ -1,7 +1,11 @@
+import { useState } from 'react';
+import { Trash2 } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
 
 export const HistoryPage = () => {
-  const { state } = useWorkoutStore();
+  const { state, deleteHistoryEntry } = useWorkoutStore();
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const history = [...state.history].reverse();
 
   return (
@@ -20,9 +24,7 @@ export const HistoryPage = () => {
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-accent-300">{session.workoutName}</p>
-                <h3 className="mt-1 text-lg font-bold">
-                  {new Date(session.finishedAt).toLocaleDateString('pt-BR')}
-                </h3>
+                <h3 className="mt-1 text-lg font-bold">{new Date(session.finishedAt).toLocaleDateString('pt-BR')}</h3>
                 <p className="text-sm text-zinc-400">
                   {new Date(session.finishedAt).toLocaleTimeString('pt-BR', {
                     hour: '2-digit',
@@ -30,9 +32,18 @@ export const HistoryPage = () => {
                   })}
                 </p>
               </div>
-              <span className="rounded-full bg-white/5 px-3 py-2 text-xs text-zinc-300">
-                {session.exercises.length} exercícios
-              </span>
+              <div className="flex shrink-0 flex-col items-end gap-2">
+                <span className="rounded-full bg-white/5 px-3 py-2 text-xs text-zinc-300">{session.exercises.length} exercícios</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedEntryId(session.id)}
+                  className="inline-flex min-h-9 items-center gap-1 rounded-xl border border-danger/35 bg-transparent px-2.5 py-1.5 text-xs font-medium text-danger/90 transition hover:bg-danger/10 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/60"
+                  aria-label={`Excluir ${session.workoutName} do histórico`}
+                >
+                  <Trash2 size={16} aria-hidden="true" />
+                  Excluir
+                </button>
+              </div>
             </div>
 
             <div className="space-y-3">
@@ -59,6 +70,22 @@ export const HistoryPage = () => {
           </article>
         ))
       )}
+
+      <ConfirmDialog
+        open={selectedEntryId !== null}
+        title="Excluir treino do histórico?"
+        description="Este registro será removido permanentemente do histórico local. Esta ação não pode ser desfeita."
+        cancelLabel="Cancelar"
+        confirmLabel="Excluir registro"
+        destructive
+        onCancel={() => setSelectedEntryId(null)}
+        onConfirm={() => {
+          if (selectedEntryId) {
+            deleteHistoryEntry(selectedEntryId);
+          }
+          setSelectedEntryId(null);
+        }}
+      />
     </div>
   );
 };
