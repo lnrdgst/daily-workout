@@ -37,7 +37,7 @@ export const HistoryPage = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedEntryId(session.id)}
-                  className="inline-flex min-h-9 items-center gap-1 rounded-xl border border-danger/35 bg-transparent px-2.5 py-1.5 text-xs font-medium text-danger/90 transition hover:bg-danger/10 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/60"
+                  className="inline-flex min-h-9 items-center gap-1 rounded-lg bg-transparent px-2 py-1.5 text-xs font-medium text-danger/70 transition hover:bg-danger/10 hover:text-danger/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40 active:bg-danger/15"
                   aria-label={`Excluir ${session.workoutName} do histórico`}
                 >
                   <Trash2 size={16} aria-hidden="true" />
