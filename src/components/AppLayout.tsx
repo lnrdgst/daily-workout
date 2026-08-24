@@ -1,6 +1,10 @@
+import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { ActiveWorkoutBar } from '@/components/ActiveWorkoutBar';
+import { SplashScreen } from '@/components/SplashScreen';
 import { useWorkoutStore, WorkoutStoreProvider } from '@/hooks/useWorkoutStore';
+
+const SPLASH_STORAGE_KEY = 'daily-workout-splash-seen';
 
 const navItems = [
   { to: '/', label: 'Treinos' },
@@ -20,8 +24,32 @@ const AppShell = () => {
   const location = useLocation();
   const { state } = useWorkoutStore();
   const showActiveWorkoutBar = Boolean(state.activeDraft) && !location.pathname.startsWith('/workout/');
+  const [showSplash, setShowSplash] = useState(() => {
+    if (state.activeDraft || typeof window === 'undefined') {
+      return false;
+    }
+
+    return window.sessionStorage.getItem(SPLASH_STORAGE_KEY) === null;
+  });
+  const [isSplashExiting, setIsSplashExiting] = useState(false);
+
+  useEffect(() => {
+    if (!showSplash) {
+      return;
+    }
+
+    window.sessionStorage.setItem(SPLASH_STORAGE_KEY, 'true');
+    const exitTimeout = window.setTimeout(() => setIsSplashExiting(true), 1100);
+    const hideTimeout = window.setTimeout(() => setShowSplash(false), 1100);
+
+    return () => {
+      window.clearTimeout(exitTimeout);
+      window.clearTimeout(hideTimeout);
+    };
+  }, [showSplash]);
 
   return (
+    <>
       <div className={`mx-auto flex min-h-screen w-full max-w-md flex-col px-4 pt-6 text-zinc-50 ${showActiveWorkoutBar ? 'pb-52' : 'pb-28'}`}>
         <header className="mb-6 flex items-center justify-between">
           <Link to="/" className="space-y-1">
@@ -50,5 +78,7 @@ const AppShell = () => {
           ))}
         </nav>
       </div>
+      {showSplash && <SplashScreen isExiting={isSplashExiting} />}
+    </>
   );
 };

@@ -44,6 +44,35 @@ input[type='number'] {
   appearance: textfield;
 }
 
+@keyframes splash-screen-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.splash-screen-enter {
+  animation: splash-screen-enter 360ms ease-out both;
+}
+
+.splash-screen-exit {
+  opacity: 0;
+  transform: translateY(-4px) scale(1.01);
+  transition: opacity 200ms ease-in, transform 200ms ease-in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-screen-enter,
+  .splash-screen-exit {
+    animation: none;
+    transition: none;
+  }
+}
+
 @layer components {
   .panel {
     @apply rounded-3xl border border-white/10 bg-white/5 shadow-glow backdrop-blur;
