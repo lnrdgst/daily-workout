@@ -120,10 +120,13 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
         setState(nextState);
       },
       discardDraft: () => {
-        setState((current) => ({
-          ...current,
+        const nextState: WorkoutAppState = {
+          ...state,
           activeDraft: null,
-        }));
+        };
+
+        saveAppState(nextState);
+        setState(nextState);
       },
       clearHistory: () => {
         setState((current) => ({

@@ -5,20 +5,39 @@ import { ExerciseCard } from '@/components/ExerciseCard';
 import { ExerciseIcon } from '@/components/ExerciseIcon';
 import { RestTimer } from '@/components/RestTimer';
 import { workoutsById } from '@/data/workouts';
-import { useWorkoutDuration } from '@/hooks/useWorkoutDuration';
+import { getWorkoutDurationSeconds, useWorkoutDuration } from '@/hooks/useWorkoutDuration';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
 
 export const WorkoutPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { state, startWorkout, updateSet, toggleSetCompleted, finishWorkout, getPreviousExerciseSets } = useWorkoutStore();
+  const { state, startWorkout, updateSet, toggleSetCompleted, finishWorkout, discardDraft, getPreviousExerciseSets } = useWorkoutStore();
   const [isFinishDialogOpen, setIsFinishDialogOpen] = useState(false);
+  const [isAccidentalFinishDialogOpen, setIsAccidentalFinishDialogOpen] = useState(false);
 
   const workoutId = id === 'A' || id === 'B' || id === 'C' ? id : null;
   const workout = workoutId ? workoutsById[workoutId] : null;
   const activeDraft = state.activeDraft?.workoutId === workoutId ? state.activeDraft : null;
   const duration = useWorkoutDuration(activeDraft?.startedAt);
   const hasIncompleteSets = activeDraft?.exercises.some((exercise) => exercise.sets.some((set) => !set.completed)) ?? false;
+  const hasRecordedActivity =
+    activeDraft?.exercises.some((exercise) =>
+      exercise.sets.some((set) => set.completed || set.load.trim() !== '' || set.reps.trim() !== ''),
+    ) ?? false;
+
+  const handleFinishRequest = () => {
+    if (!activeDraft) {
+      return;
+    }
+
+    const isAccidentalSession = getWorkoutDurationSeconds(activeDraft.startedAt) < 60 && !hasRecordedActivity;
+    if (isAccidentalSession) {
+      setIsAccidentalFinishDialogOpen(true);
+      return;
+    }
+
+    setIsFinishDialogOpen(true);
+  };
 
   if (!workoutId || !workout) {
     return (
@@ -76,7 +95,7 @@ export const WorkoutPage = () => {
           <section className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => setIsFinishDialogOpen(true)}
+              onClick={handleFinishRequest}
               className="touch-button bg-accent-500 text-base font-semibold text-white"
             >
               Finalizar
@@ -142,6 +161,20 @@ export const WorkoutPage = () => {
         onConfirm={() => {
           finishWorkout();
           navigate('/history');
+        }}
+      />
+
+      <ConfirmDialog
+        open={isAccidentalFinishDialogOpen}
+        title="Encerrar treino?"
+        description="O tempo de treinamento foi muito curto e nenhuma série foi registrada. Este treino não será salvo no histórico. Deseja encerrar mesmo assim?"
+        cancelLabel="Continuar treino"
+        confirmLabel="Encerrar sem registrar"
+        destructive
+        onCancel={() => setIsAccidentalFinishDialogOpen(false)}
+        onConfirm={() => {
+          discardDraft();
+          navigate('/');
         }}
       />
     </div>

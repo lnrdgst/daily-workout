@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
-const getElapsedSeconds = (startedAt: string) => Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000));
+export const getWorkoutDurationSeconds = (startedAt: string) =>
+  Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000));
 
 export const formatWorkoutDuration = (seconds: number) => {
   const hours = Math.floor(seconds / 3600);
@@ -13,7 +14,7 @@ export const formatWorkoutDuration = (seconds: number) => {
 };
 
 export const useWorkoutDuration = (startedAt?: string) => {
-  const [elapsedSeconds, setElapsedSeconds] = useState(() => (startedAt ? getElapsedSeconds(startedAt) : 0));
+  const [elapsedSeconds, setElapsedSeconds] = useState(() => (startedAt ? getWorkoutDurationSeconds(startedAt) : 0));
 
   useEffect(() => {
     if (!startedAt) {
@@ -21,7 +22,7 @@ export const useWorkoutDuration = (startedAt?: string) => {
       return;
     }
 
-    const updateDuration = () => setElapsedSeconds(getElapsedSeconds(startedAt));
+    const updateDuration = () => setElapsedSeconds(getWorkoutDurationSeconds(startedAt));
     updateDuration();
     const intervalId = window.setInterval(updateDuration, 1000);
 
