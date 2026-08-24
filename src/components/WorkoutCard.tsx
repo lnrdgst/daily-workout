@@ -33,7 +33,7 @@ export const WorkoutCard = ({ workout, lastSession }: WorkoutCardProps) => {
       </div>
 
       <Link to={`/workout/${workout.id}`} className="touch-button w-full bg-accent-500 text-base font-semibold text-white">
-        Iniciar treino
+        Visualizar treino
       </Link>
     </article>
   );
