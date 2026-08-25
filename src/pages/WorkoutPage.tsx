@@ -8,6 +8,20 @@ import { workoutsById } from '@/data/workouts';
 import { getWorkoutDurationSeconds, useWorkoutDuration } from '@/hooks/useWorkoutDuration';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
 
+type WorkoutSessionIndicatorProps = {
+  duration: string;
+};
+
+const WorkoutSessionIndicator = ({ duration }: WorkoutSessionIndicatorProps) => (
+  <div className="flex min-h-[3.5rem] items-center justify-between gap-3 rounded-2xl border border-white/10 bg-zinc-950/85 px-4 py-3 text-sm shadow-glow backdrop-blur-sm">
+    <div className="min-w-0">
+      <p className="text-[0.65rem] uppercase tracking-[0.24em] text-accent-300/80">Treino em andamento</p>
+      <p className="truncate text-sm text-zinc-300">Tempo total da sessão</p>
+    </div>
+    <p className="shrink-0 text-base font-semibold tabular-nums text-zinc-50">{duration}</p>
+  </div>
+);
+
 export const WorkoutPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -62,14 +76,18 @@ export const WorkoutPage = () => {
             <p className="mt-2 text-sm text-zinc-400">{workout.description}</p>
           </div>
           <div className="rounded-2xl bg-white/5 px-3 py-2 text-right">
-            <p className="text-xs text-zinc-500">{isTraining ? 'Duração' : 'Ficha'}</p>
-            <p className="text-sm font-semibold tabular-nums">{isTraining ? duration : 'Visualização'}</p>
+            <p className="text-xs text-zinc-500">{isTraining ? 'Status' : 'Ficha'}</p>
+            <p className="text-sm font-semibold tabular-nums">{isTraining ? 'Ativo' : 'Visualização'}</p>
           </div>
         </div>
       </section>
 
       {isTraining ? (
         <>
+          <section className="sticky z-10" style={{ top: 'max(env(safe-area-inset-top), 0.5rem)' }}>
+            <WorkoutSessionIndicator duration={duration} />
+          </section>
+
           <RestTimer />
 
           <section className="space-y-4">
