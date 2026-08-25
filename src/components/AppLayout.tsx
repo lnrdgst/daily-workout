@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { ActiveWorkoutBar } from '@/components/ActiveWorkoutBar';
+import { ScrollToTop } from '@/components/ScrollToTop';
 import { SplashScreen } from '@/components/SplashScreen';
 import { useWorkoutStore, WorkoutStoreProvider } from '@/hooks/useWorkoutStore';
 
@@ -50,6 +51,7 @@ const AppShell = () => {
 
   return (
     <>
+      <ScrollToTop />
       <div className={`mx-auto flex min-h-screen w-full max-w-md flex-col px-4 pt-6 text-zinc-50 ${showActiveWorkoutBar ? 'pb-52' : 'pb-28'}`}>
         <header className="mb-6 flex items-center justify-between">
           <Link to="/" className="space-y-1">
