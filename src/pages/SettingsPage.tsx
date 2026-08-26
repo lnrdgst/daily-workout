@@ -29,7 +29,7 @@ const AlertToggle = ({ label, enabled, disabled = false, onClick }: AlertToggleP
     <span className="flex items-center gap-2 text-xs text-zinc-400">
       {enabled ? 'Ligado' : 'Desligado'}
       <span className={`relative h-5 w-9 rounded-full transition ${enabled ? 'bg-accent-500' : 'bg-white/15'}`} aria-hidden="true">
-        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition ${enabled ? 'left-4.5' : 'left-0.5'}`} />
+        <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${enabled ? 'translate-x-4' : 'translate-x-0'}`} />
       </span>
     </span>
   </button>
@@ -96,7 +96,7 @@ export const SettingsPage = () => {
       <section className="panel p-5">
         <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Ajustes</p>
         <h2 className="mt-1 text-2xl font-bold">Controle local</h2>
-        <p className="mt-2 text-sm text-zinc-400">Tudo fica salvo no seu aparelho usando `localStorage`.</p>
+        <p className="mt-2 text-sm text-zinc-400">Tudo fica salvo no seu aparelho.</p>
       </section>
 
       <section className="panel space-y-4 p-5">
