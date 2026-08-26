@@ -16,36 +16,36 @@ const getAudioContext = () => {
 };
 
 const volumeGains: Record<RestAlertVolume, number> = {
-  low: 0.07,
-  medium: 0.14,
-  high: 0.24,
+  low: 0.12,
+  medium: 0.23,
+  high: 0.38,
 };
 
 const playBeep = (context: AudioContext, destination: AudioNode, startAt: number, frequency: number, peakGain: number) => {
   const oscillator = context.createOscillator();
   const gain = context.createGain();
 
-  oscillator.type = 'sine';
+  oscillator.type = 'square';
   oscillator.frequency.setValueAtTime(frequency, startAt);
   gain.gain.setValueAtTime(0.0001, startAt);
-  gain.gain.exponentialRampToValueAtTime(peakGain, startAt + 0.015);
-  gain.gain.setValueAtTime(peakGain, startAt + 0.17);
-  gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.22);
+  gain.gain.exponentialRampToValueAtTime(peakGain, startAt + 0.006);
+  gain.gain.setValueAtTime(peakGain, startAt + 0.23);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.28);
   oscillator.connect(gain).connect(destination);
   oscillator.start(startAt);
-  oscillator.stop(startAt + 0.23);
+  oscillator.stop(startAt + 0.29);
 };
 
 const playChime = (context: AudioContext, volume: RestAlertVolume) => {
   const startAt = context.currentTime;
   const masterGain = context.createGain();
 
-  // The master gain keeps the three clear, high-pitched beeps below clipping.
-  masterGain.gain.setValueAtTime(0.8, startAt);
+  // Square-wave pulses cut through noisy environments while the master gain avoids clipping.
+  masterGain.gain.setValueAtTime(0.68, startAt);
   masterGain.connect(context.destination);
-  playBeep(context, masterGain, startAt, 880, volumeGains[volume]);
-  playBeep(context, masterGain, startAt + 0.3, 1040, volumeGains[volume]);
-  playBeep(context, masterGain, startAt + 0.6, 1320, volumeGains[volume]);
+  playBeep(context, masterGain, startAt, 2600, volumeGains[volume]);
+  playBeep(context, masterGain, startAt + 0.4, 2800, volumeGains[volume]);
+  playBeep(context, masterGain, startAt + 0.8, 3100, volumeGains[volume]);
 };
 
 export const primeRestAlertSound = () => {
