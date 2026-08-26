@@ -99,18 +99,6 @@ export const SettingsPage = () => {
         <p className="mt-2 text-sm text-zinc-400">Tudo fica salvo no seu aparelho.</p>
       </section>
 
-      <section className="panel space-y-4 p-5">
-        <div className="rounded-2xl bg-white/5 p-4">
-          <p className="text-sm text-zinc-400">Último treino concluído</p>
-          <p className="mt-1 text-lg font-semibold">{state.lastCompletedWorkoutId ? `Treino ${state.lastCompletedWorkoutId}` : 'Nenhum'}</p>
-          {timing && <p className="mt-1 text-xs text-zinc-500">{timing}</p>}
-        </div>
-        <div className="rounded-2xl bg-white/5 p-4">
-          <p className="text-sm text-zinc-400">Treinos concluídos - Total</p>
-          <p className="mt-1 text-lg font-semibold">{state.history.length}</p>
-        </div>
-      </section>
-
       <section className="panel space-y-2 p-5">
         <div className="mb-3">
           <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Alertas do cronômetro</p>
@@ -143,6 +131,18 @@ export const SettingsPage = () => {
           onClick={() => void toggleNotifications()}
         />
         {notificationStatusMessage && <p className="px-1 pt-1 text-xs text-zinc-400">{notificationStatusMessage}</p>}
+      </section>
+
+      <section className="panel space-y-4 p-5">
+        <div className="rounded-2xl bg-white/5 p-4">
+          <p className="text-sm text-zinc-400">Último treino concluído</p>
+          <p className="mt-1 text-lg font-semibold">{state.lastCompletedWorkoutId ? `Treino ${state.lastCompletedWorkoutId}` : 'Nenhum'}</p>
+          {timing && <p className="mt-1 text-xs text-zinc-500">{timing}</p>}
+        </div>
+        <div className="rounded-2xl bg-white/5 p-4">
+          <p className="text-sm text-zinc-400">Treinos concluídos - Total</p>
+          <p className="mt-1 text-lg font-semibold">{state.history.length}</p>
+        </div>
       </section>
 
       <section className="grid grid-cols-1 gap-3">
