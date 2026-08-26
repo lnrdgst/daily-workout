@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ExerciseCard } from '@/components/ExerciseCard';
 import { ExerciseIcon } from '@/components/ExerciseIcon';
+import { MainNavigation } from '@/components/MainNavigation';
 import { RestTimer } from '@/components/RestTimer';
 import { workoutsById } from '@/data/workouts';
 import { getWorkoutDurationSeconds, useWorkoutDuration } from '@/hooks/useWorkoutDuration';
@@ -67,7 +68,10 @@ export const WorkoutPage = () => {
   const isTraining = activeDraft !== null;
 
   return (
-    <div className="space-y-4 pb-8">
+    <div className={`space-y-4 ${isTraining ? 'pb-[calc(6.5rem+env(safe-area-inset-bottom))]' : 'pb-8'}`}>
+      {isTraining && (
+        <MainNavigation className="grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-surface-900/80 p-2 shadow-glow backdrop-blur" />
+      )}
       <section className="panel p-5">
         <div className="flex items-start justify-between gap-4">
           <div>

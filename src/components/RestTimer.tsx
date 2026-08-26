@@ -1,6 +1,7 @@
+import { Play, RotateCcw, Square } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-const presets = [60, 90, 120, 180];
+const presets = [60, 90, 120];
 
 const formatTime = (seconds: number) => {
   const minutes = Math.floor(seconds / 60)
@@ -10,10 +11,14 @@ const formatTime = (seconds: number) => {
   return `${minutes}:${remainder}`;
 };
 
+type RestTimerStatus = 'ready' | 'running' | 'finished';
+
 export const RestTimer = () => {
+  const [selectedSeconds, setSelectedSeconds] = useState(90);
   const [remainingSeconds, setRemainingSeconds] = useState(90);
-  const [isRunning, setIsRunning] = useState(false);
+  const [status, setStatus] = useState<RestTimerStatus>('ready');
   const intervalRef = useRef<number | null>(null);
+  const isRunning = status === 'running';
 
   useEffect(() => {
     if (!isRunning) {
@@ -27,7 +32,7 @@ export const RestTimer = () => {
     intervalRef.current = window.setInterval(() => {
       setRemainingSeconds((current) => {
         if (current <= 1) {
-          setIsRunning(false);
+          setStatus('finished');
           return 0;
         }
 
@@ -38,64 +43,69 @@ export const RestTimer = () => {
     return () => {
       if (intervalRef.current) {
         window.clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, [isRunning]);
 
+  const selectPreset = (seconds: number) => {
+    if (isRunning) {
+      return;
+    }
+
+    setSelectedSeconds(seconds);
+    setRemainingSeconds(seconds);
+    setStatus('ready');
+  };
+
+  const handlePrimaryAction = () => {
+    if (status === 'running') {
+      setRemainingSeconds(selectedSeconds);
+      setStatus('ready');
+      return;
+    }
+
+    setRemainingSeconds(selectedSeconds);
+    setStatus('running');
+  };
+
+  const primaryAction =
+    status === 'running'
+      ? { label: 'Parar descanso', icon: <Square size={16} fill="currentColor" />, className: 'bg-white/15 text-zinc-100' }
+      : status === 'finished'
+        ? { label: 'Repetir descanso', icon: <RotateCcw size={18} />, className: 'bg-white/10 text-accent-300' }
+        : { label: 'Iniciar descanso', icon: <Play size={18} fill="currentColor" />, className: 'bg-accent-500 text-white' };
+
   return (
-    <section className="panel p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Descanso</p>
-          <h2 className="mt-1 text-lg font-bold">Cronômetro</h2>
-        </div>
-        <div className="rounded-3xl bg-accent-500/10 px-5 py-3 text-4xl font-bold text-accent-300">
-          {formatTime(remainingSeconds)}
-        </div>
-      </div>
+    <aside className="fixed bottom-[env(safe-area-inset-bottom)] left-1/2 z-30 w-[calc(100%-1rem)] max-w-md -translate-x-1/2 rounded-2xl border border-white/10 bg-surface-900/95 p-2 shadow-glow backdrop-blur">
+      <div className="flex items-center gap-2">
+        <p className="w-[4.25rem] shrink-0 text-center text-xl font-bold tabular-nums text-accent-300">{formatTime(remainingSeconds)}</p>
 
-      <div className="mb-4 grid grid-cols-4 gap-2">
-        {presets.map((seconds) => (
-          <button
-            key={seconds}
-            type="button"
-            onClick={() => {
-              setRemainingSeconds(seconds);
-              setIsRunning(false);
-            }}
-            className="touch-button bg-white/5 text-zinc-200"
-          >
-            {seconds}s
-          </button>
-        ))}
-      </div>
+        <div className="grid min-w-0 flex-1 grid-cols-3 gap-1">
+          {presets.map((seconds) => (
+            <button
+              key={seconds}
+              type="button"
+              disabled={isRunning}
+              onClick={() => selectPreset(seconds)}
+              className={`min-h-10 rounded-xl px-1 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                selectedSeconds === seconds ? 'bg-accent-500/20 text-accent-300' : 'bg-white/5 text-zinc-300'
+              }`}
+            >
+              {seconds}s
+            </button>
+          ))}
+        </div>
 
-      <div className="grid grid-cols-3 gap-2">
         <button
           type="button"
-          onClick={() => setIsRunning(true)}
-          className="touch-button bg-accent-500 font-semibold text-white"
+          onClick={handlePrimaryAction}
+          aria-label={primaryAction.label}
+          className={`inline-flex min-h-10 w-10 shrink-0 items-center justify-center rounded-xl transition active:scale-[0.98] ${primaryAction.className}`}
         >
-          Iniciar
-        </button>
-        <button
-          type="button"
-          onClick={() => setIsRunning(false)}
-          className="touch-button bg-white/10 text-zinc-100"
-        >
-          Pausar
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setIsRunning(false);
-            setRemainingSeconds(0);
-          }}
-          className="touch-button bg-danger/90 text-white"
-        >
-          Zerar
+          {primaryAction.icon}
         </button>
       </div>
-    </section>
+    </aside>
   );
 };
