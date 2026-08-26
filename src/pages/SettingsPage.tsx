@@ -1,14 +1,85 @@
 import { useState } from 'react';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { useRestAlertSettings } from '@/hooks/useRestAlertSettings';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
 import { getLastWorkout } from '@/utils/storage';
+import type { RestAlertSettings } from '@/utils/restAlertSettings';
 import { formatWorkoutTimeRange } from '@/utils/workoutTiming';
+
+interface AlertToggleProps {
+  label: string;
+  enabled: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}
+
+const AlertToggle = ({ label, enabled, disabled = false, onClick }: AlertToggleProps) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={enabled}
+    aria-label={`${label}: ${enabled ? 'ligado' : 'desligado'}`}
+    disabled={disabled}
+    onClick={onClick}
+    className={`flex min-h-12 w-full items-center justify-between rounded-2xl px-3 py-2 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
+      enabled ? 'bg-accent-500/10 text-zinc-100' : 'bg-white/5 text-zinc-300'
+    }`}
+  >
+    <span className="text-sm font-medium">{label}</span>
+    <span className="flex items-center gap-2 text-xs text-zinc-400">
+      {enabled ? 'Ligado' : 'Desligado'}
+      <span className={`relative h-5 w-9 rounded-full transition ${enabled ? 'bg-accent-500' : 'bg-white/15'}`} aria-hidden="true">
+        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition ${enabled ? 'left-4.5' : 'left-0.5'}`} />
+      </span>
+    </span>
+  </button>
+);
 
 export const SettingsPage = () => {
   const { state, clearHistory, discardDraft } = useWorkoutStore();
+  const [alertSettings, setAlertSettings] = useRestAlertSettings();
   const [dialog, setDialog] = useState<'discard-draft' | 'clear-history' | null>(null);
+  const [notificationFeedback, setNotificationFeedback] = useState<string | null>(null);
   const lastWorkout = getLastWorkout(state.history, state.lastCompletedWorkoutId);
   const timing = lastWorkout ? formatWorkoutTimeRange(lastWorkout.startedAt, lastWorkout.finishedAt) : null;
+  const notificationSupported = typeof Notification !== 'undefined';
+  const notificationBlocked = !notificationSupported || Notification.permission === 'denied';
+  const notificationStatusMessage = !notificationSupported
+    ? 'Notificações não são suportadas neste dispositivo.'
+    : Notification.permission === 'denied'
+      ? 'Permissão de notificações não concedida.'
+      : notificationFeedback;
+
+  const toggleAlertSetting = (setting: Exclude<keyof RestAlertSettings, 'notifications'>) => {
+    setAlertSettings((current) => ({ ...current, [setting]: !current[setting] }));
+  };
+
+  const toggleNotifications = async () => {
+    setNotificationFeedback(null);
+
+    if (alertSettings.notifications) {
+      setAlertSettings((current) => ({ ...current, notifications: false }));
+      return;
+    }
+
+    if (!notificationSupported) {
+      setNotificationFeedback('Notificações não são suportadas neste dispositivo.');
+      return;
+    }
+
+    if (Notification.permission === 'denied') {
+      setNotificationFeedback('Permissão de notificações não concedida.');
+      return;
+    }
+
+    const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+    if (permission === 'granted') {
+      setAlertSettings((current) => ({ ...current, notifications: true }));
+      return;
+    }
+
+    setNotificationFeedback('Permissão de notificações não concedida.');
+  };
 
   return (
     <div className="space-y-4">
@@ -28,6 +99,22 @@ export const SettingsPage = () => {
           <p className="text-sm text-zinc-400">Treinos concluídos - Total</p>
           <p className="mt-1 text-lg font-semibold">{state.history.length}</p>
         </div>
+      </section>
+
+      <section className="panel space-y-2 p-5">
+        <div className="mb-3">
+          <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Alertas do cronômetro</p>
+          <p className="mt-2 text-sm text-zinc-400">Os alertas dependem dos recursos e permissões disponíveis no dispositivo.</p>
+        </div>
+        <AlertToggle label="Som" enabled={alertSettings.sound} onClick={() => toggleAlertSetting('sound')} />
+        <AlertToggle label="Vibração" enabled={alertSettings.vibration} onClick={() => toggleAlertSetting('vibration')} />
+        <AlertToggle
+          label="Notificação do sistema"
+          enabled={alertSettings.notifications}
+          disabled={notificationBlocked}
+          onClick={() => void toggleNotifications()}
+        />
+        {notificationStatusMessage && <p className="px-1 pt-1 text-xs text-zinc-400">{notificationStatusMessage}</p>}
       </section>
 
       <section className="grid grid-cols-1 gap-3">
