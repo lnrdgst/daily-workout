@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
+import { formatWorkoutTimeRange } from '@/utils/workoutTiming';
 
 export const HistoryPage = () => {
   const { state, deleteHistoryEntry } = useWorkoutStore();
@@ -19,8 +20,11 @@ export const HistoryPage = () => {
       {history.length === 0 ? (
         <section className="panel p-5 text-sm text-zinc-400">Nenhum treino concluído ainda.</section>
       ) : (
-        history.map((session) => (
-          <article key={session.id} className="panel p-5">
+        history.map((session) => {
+          const timing = formatWorkoutTimeRange(session.startedAt, session.finishedAt);
+
+          return (
+            <article key={session.id} className="panel p-5">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-accent-300">{session.workoutName}</p>
@@ -31,6 +35,7 @@ export const HistoryPage = () => {
                     minute: '2-digit',
                   })}
                 </p>
+                {timing && <p className="mt-1 text-xs text-zinc-500">{timing}</p>}
               </div>
               <div className="flex shrink-0 flex-col items-end gap-2">
                 <span className="rounded-full bg-white/5 px-3 py-2 text-xs text-zinc-300">{session.exercises.length} exercícios</span>
@@ -67,8 +72,9 @@ export const HistoryPage = () => {
                 </div>
               ))}
             </div>
-          </article>
-        ))
+            </article>
+          );
+        })
       )}
 
       <ConfirmDialog

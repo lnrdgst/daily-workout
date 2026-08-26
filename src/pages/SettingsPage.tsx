@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
+import { getLastWorkout } from '@/utils/storage';
+import { formatWorkoutTimeRange } from '@/utils/workoutTiming';
 
 export const SettingsPage = () => {
   const { state, clearHistory, discardDraft } = useWorkoutStore();
   const [dialog, setDialog] = useState<'discard-draft' | 'clear-history' | null>(null);
+  const lastWorkout = getLastWorkout(state.history, state.lastCompletedWorkoutId);
+  const timing = lastWorkout ? formatWorkoutTimeRange(lastWorkout.startedAt, lastWorkout.finishedAt) : null;
 
   return (
     <div className="space-y-4">
@@ -18,6 +22,7 @@ export const SettingsPage = () => {
         <div className="rounded-2xl bg-white/5 p-4">
           <p className="text-sm text-zinc-400">Último treino concluído</p>
           <p className="mt-1 text-lg font-semibold">{state.lastCompletedWorkoutId ? `Treino ${state.lastCompletedWorkoutId}` : 'Nenhum'}</p>
+          {timing && <p className="mt-1 text-xs text-zinc-500">{timing}</p>}
         </div>
         <div className="rounded-2xl bg-white/5 p-4">
           <p className="text-sm text-zinc-400">Treinos concluídos - Total</p>
