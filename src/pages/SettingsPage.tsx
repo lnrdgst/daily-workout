@@ -3,7 +3,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useRestAlertSettings } from '@/hooks/useRestAlertSettings';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
 import { getLastWorkout } from '@/utils/storage';
-import type { RestAlertSettings } from '@/utils/restAlertSettings';
+import type { RestAlertSettings, RestAlertVolume } from '@/utils/restAlertSettings';
 import { formatWorkoutTimeRange } from '@/utils/workoutTiming';
 
 interface AlertToggleProps {
@@ -34,6 +34,12 @@ const AlertToggle = ({ label, enabled, disabled = false, onClick }: AlertToggleP
     </span>
   </button>
 );
+
+const alertVolumeOptions: Array<{ value: RestAlertVolume; label: string }> = [
+  { value: 'low', label: 'Baixo' },
+  { value: 'medium', label: 'Médio' },
+  { value: 'high', label: 'Alto' },
+];
 
 export const SettingsPage = () => {
   const { state, clearHistory, discardDraft } = useWorkoutStore();
@@ -81,6 +87,10 @@ export const SettingsPage = () => {
     setNotificationFeedback('Permissão de notificações não concedida.');
   };
 
+  const setAlertVolume = (volume: RestAlertVolume) => {
+    setAlertSettings((current) => ({ ...current, volume }));
+  };
+
   return (
     <div className="space-y-4">
       <section className="panel p-5">
@@ -107,6 +117,24 @@ export const SettingsPage = () => {
           <p className="mt-2 text-sm text-zinc-400">Os alertas dependem dos recursos e permissões disponíveis no dispositivo.</p>
         </div>
         <AlertToggle label="Som" enabled={alertSettings.sound} onClick={() => toggleAlertSetting('sound')} />
+        <div className={`rounded-2xl bg-white/5 p-3 ${alertSettings.sound ? '' : 'opacity-50'}`}>
+          <p className="text-sm font-medium text-zinc-200">Volume do alerta</p>
+          <div className="mt-2 grid grid-cols-3 gap-2" role="group" aria-label="Volume do alerta sonoro">
+            {alertVolumeOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                disabled={!alertSettings.sound}
+                onClick={() => setAlertVolume(option.value)}
+                className={`min-h-10 rounded-xl px-2 text-xs font-medium transition disabled:cursor-not-allowed ${
+                  alertSettings.volume === option.value ? 'bg-accent-500 text-white' : 'bg-white/5 text-zinc-300'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <AlertToggle label="Vibração" enabled={alertSettings.vibration} onClick={() => toggleAlertSetting('vibration')} />
         <AlertToggle
           label="Notificação do sistema"

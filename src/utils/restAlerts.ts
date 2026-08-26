@@ -1,4 +1,4 @@
-import type { RestAlertSettings } from '@/utils/restAlertSettings';
+import type { RestAlertSettings, RestAlertVolume } from '@/utils/restAlertSettings';
 
 let audioContext: AudioContext | null = null;
 
@@ -15,20 +15,37 @@ const getAudioContext = () => {
   }
 };
 
-const playChime = (context: AudioContext) => {
+const volumeGains: Record<RestAlertVolume, number> = {
+  low: 0.07,
+  medium: 0.14,
+  high: 0.24,
+};
+
+const playBeep = (context: AudioContext, destination: AudioNode, startAt: number, frequency: number, peakGain: number) => {
   const oscillator = context.createOscillator();
   const gain = context.createGain();
-  const startAt = context.currentTime;
 
   oscillator.type = 'sine';
-  oscillator.frequency.setValueAtTime(660, startAt);
-  oscillator.frequency.exponentialRampToValueAtTime(880, startAt + 0.18);
+  oscillator.frequency.setValueAtTime(frequency, startAt);
   gain.gain.setValueAtTime(0.0001, startAt);
-  gain.gain.exponentialRampToValueAtTime(0.08, startAt + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.24);
-  oscillator.connect(gain).connect(context.destination);
+  gain.gain.exponentialRampToValueAtTime(peakGain, startAt + 0.015);
+  gain.gain.setValueAtTime(peakGain, startAt + 0.17);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.22);
+  oscillator.connect(gain).connect(destination);
   oscillator.start(startAt);
-  oscillator.stop(startAt + 0.25);
+  oscillator.stop(startAt + 0.23);
+};
+
+const playChime = (context: AudioContext, volume: RestAlertVolume) => {
+  const startAt = context.currentTime;
+  const masterGain = context.createGain();
+
+  // The master gain keeps the three clear, high-pitched beeps below clipping.
+  masterGain.gain.setValueAtTime(0.8, startAt);
+  masterGain.connect(context.destination);
+  playBeep(context, masterGain, startAt, 880, volumeGains[volume]);
+  playBeep(context, masterGain, startAt + 0.3, 1040, volumeGains[volume]);
+  playBeep(context, masterGain, startAt + 0.6, 1320, volumeGains[volume]);
 };
 
 export const primeRestAlertSound = () => {
@@ -38,7 +55,7 @@ export const primeRestAlertSound = () => {
   }
 };
 
-export const playRestFinishedSound = () => {
+export const playRestFinishedSound = (volume: RestAlertVolume) => {
   try {
     const context = getAudioContext();
     if (!context) {
@@ -46,11 +63,11 @@ export const playRestFinishedSound = () => {
     }
 
     if (context.state === 'suspended') {
-      void context.resume().then(() => playChime(context)).catch(() => undefined);
+      void context.resume().then(() => playChime(context, volume)).catch(() => undefined);
       return;
     }
 
-    playChime(context);
+    playChime(context, volume);
   } catch {
     // Audio playback is optional and must not affect the rest timer.
   }
@@ -84,7 +101,7 @@ export const showRestFinishedNotification = () => {
 
 export const triggerRestFinishedAlerts = (settings: RestAlertSettings) => {
   if (settings.sound) {
-    playRestFinishedSound();
+    playRestFinishedSound(settings.volume);
   }
   if (settings.vibration) {
     vibrateRestFinished();
