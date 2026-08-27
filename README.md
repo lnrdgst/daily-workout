@@ -2,6 +2,10 @@
 
 Aplicativo frontend para registrar treinos de musculação no celular, com foco em uso rápido durante a academia.
 
+# Acessar aplicação em produção
+
+https://daily-workout-cyan.vercel.app/
+
 ## Stack
 
 - React
