@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import type { ReactNode } from 'react';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -7,6 +8,8 @@ interface ConfirmDialogProps {
   confirmLabel: string;
   cancelLabel: string;
   destructive?: boolean;
+  confirmDisabled?: boolean;
+  children?: ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -18,6 +21,8 @@ export const ConfirmDialog = ({
   confirmLabel,
   cancelLabel,
   destructive = false,
+  confirmDisabled = false,
+  children,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) => {
@@ -56,6 +61,7 @@ export const ConfirmDialog = ({
           {title}
         </h2>
         <p className="mt-2 text-sm leading-6 text-zinc-400">{description}</p>
+        {children}
         <div className="mt-5 grid grid-cols-1 gap-3">
           <button ref={cancelButtonRef} type="button" onClick={onCancel} className="touch-button bg-white/10 text-zinc-100">
             {cancelLabel}
@@ -63,7 +69,8 @@ export const ConfirmDialog = ({
           <button
             type="button"
             onClick={onConfirm}
-            className={`touch-button font-semibold text-white ${destructive ? 'bg-danger' : 'bg-accent-500'}`}
+            disabled={confirmDisabled}
+            className={`touch-button font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 ${destructive ? 'bg-danger' : 'bg-accent-500'}`}
           >
             {confirmLabel}
           </button>

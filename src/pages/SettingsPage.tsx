@@ -50,6 +50,8 @@ export const SettingsPage = () => {
   const [alertSettings, setAlertSettings] = useRestAlertSettings();
   const [restTimerSettings, setRestTimerSettings] = useRestTimerSettings();
   const [dialog, setDialog] = useState<'discard-draft' | 'clear-history' | null>(null);
+  const [clearHistoryCode, setClearHistoryCode] = useState('');
+  const [clearHistoryInput, setClearHistoryInput] = useState('');
   const [notificationFeedback, setNotificationFeedback] = useState<string | null>(null);
   const lastWorkout = getLastWorkout(state.history, state.lastCompletedWorkoutId);
   const timing = lastWorkout ? formatWorkoutTimeRange(lastWorkout.startedAt, lastWorkout.finishedAt) : null;
@@ -99,6 +101,20 @@ export const SettingsPage = () => {
   const setDefaultRestSeconds = (defaultRestSeconds: RestDurationSeconds) => {
     setRestTimerSettings({ defaultRestSeconds });
   };
+
+  const openClearHistoryDialog = () => {
+    setClearHistoryCode(String(Math.floor(Math.random() * 9000) + 1000));
+    setClearHistoryInput('');
+    setDialog('clear-history');
+  };
+
+  const closeClearHistoryDialog = () => {
+    setClearHistoryCode('');
+    setClearHistoryInput('');
+    setDialog(null);
+  };
+
+  const isClearHistoryCodeValid = clearHistoryCode !== '' && clearHistoryInput === clearHistoryCode;
 
   return (
     <div className="space-y-4">
@@ -181,7 +197,7 @@ export const SettingsPage = () => {
             Limpar treino em andamento
           </button>
         )}
-        <button type="button" onClick={() => setDialog('clear-history')} className="touch-button bg-danger text-white">
+        <button type="button" onClick={openClearHistoryDialog} className="touch-button bg-danger text-white">
           Apagar histórico local
         </button>
       </section>
@@ -207,12 +223,36 @@ export const SettingsPage = () => {
         cancelLabel="Cancelar"
         confirmLabel="Apagar histórico"
         destructive
-        onCancel={() => setDialog(null)}
+        confirmDisabled={!isClearHistoryCodeValid}
+        onCancel={closeClearHistoryDialog}
         onConfirm={() => {
+          if (!isClearHistoryCodeValid) {
+            return;
+          }
+
           clearHistory();
-          setDialog(null);
+          closeClearHistoryDialog();
         }}
-      />
+      >
+        <div className="mt-5">
+          <p className="text-sm text-zinc-300">Para confirmar, digite o código:</p>
+          <p className="mt-2 text-center text-2xl font-bold tracking-[0.35em] text-accent-300">{clearHistoryCode}</p>
+          <label className="sr-only" htmlFor="clear-history-code">
+            Código de confirmação
+          </label>
+          <input
+            id="clear-history-code"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="one-time-code"
+            maxLength={4}
+            value={clearHistoryInput}
+            onChange={(event) => setClearHistoryInput(event.target.value.replace(/\D/g, '').slice(0, 4))}
+            className="mt-4 min-h-12 w-full rounded-2xl border border-white/10 bg-black/20 px-4 text-center text-lg font-semibold tracking-[0.2em] text-zinc-100 outline-none transition focus:border-danger/70 focus:ring-2 focus:ring-danger/30"
+          />
+        </div>
+      </ConfirmDialog>
     </div>
   );
 };
