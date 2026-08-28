@@ -13,18 +13,18 @@ import type { WorkoutProgressSummary } from '@/utils/workoutProgress';
 import { getWorkoutProgress } from '@/utils/workoutProgress';
 
 type WorkoutSessionIndicatorProps = {
+  workoutId: string;
   duration: string;
   progress: WorkoutProgressSummary;
 };
 
-const WorkoutSessionIndicator = ({ duration, progress }: WorkoutSessionIndicatorProps) => (
+const WorkoutSessionIndicator = ({ workoutId, duration, progress }: WorkoutSessionIndicatorProps) => (
   <div className="rounded-2xl border border-white/10 bg-zinc-950/85 px-4 py-3 text-sm shadow-glow backdrop-blur-sm">
-    <p className="text-[0.65rem] uppercase tracking-[0.24em] text-accent-300/80">Treino em andamento</p>
-    <div className="mt-2 flex items-center justify-between gap-3">
-      <p className="min-w-0 text-sm text-zinc-300">Tempo total da sessão</p>
+    <div className="flex items-center justify-between gap-3">
+      <p className="min-w-0 truncate text-[0.65rem] uppercase tracking-[0.24em] text-accent-300/80">Treino {workoutId} em andamento</p>
       <p className="shrink-0 text-base font-semibold tabular-nums text-zinc-50">{duration}</p>
     </div>
-    <div className="mt-3 flex items-baseline justify-between gap-3">
+    <div className="mt-2 flex items-baseline justify-between gap-3">
       <p className="min-w-0 text-xs text-zinc-400">
         {progress.completedExercises} de {progress.totalExercises} exercícios concluídos
       </p>
@@ -123,7 +123,7 @@ export const WorkoutPage = () => {
       {isTraining ? (
         <>
           <section className="sticky z-10" style={{ top: 'max(env(safe-area-inset-top), 0.5rem)' }}>
-            <WorkoutSessionIndicator duration={duration} progress={progress!} />
+            <WorkoutSessionIndicator workoutId={activeDraft.workoutId} duration={duration} progress={progress!} />
           </section>
 
           <RestTimer />
