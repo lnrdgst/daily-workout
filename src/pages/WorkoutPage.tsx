@@ -9,18 +9,30 @@ import { workoutsById } from '@/data/workouts';
 import { useRestTimerSettings } from '@/hooks/useRestTimerSettings';
 import { getWorkoutDurationSeconds, useWorkoutDuration } from '@/hooks/useWorkoutDuration';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
+import type { WorkoutProgressSummary } from '@/utils/workoutProgress';
+import { getWorkoutProgress } from '@/utils/workoutProgress';
 
 type WorkoutSessionIndicatorProps = {
   duration: string;
+  progress: WorkoutProgressSummary;
 };
 
-const WorkoutSessionIndicator = ({ duration }: WorkoutSessionIndicatorProps) => (
-  <div className="flex min-h-[3.5rem] items-center justify-between gap-3 rounded-2xl border border-white/10 bg-zinc-950/85 px-4 py-3 text-sm shadow-glow backdrop-blur-sm">
-    <div className="min-w-0">
-      <p className="text-[0.65rem] uppercase tracking-[0.24em] text-accent-300/80">Treino em andamento</p>
-      <p className="truncate text-sm text-zinc-300">Tempo total da sessão</p>
+const WorkoutSessionIndicator = ({ duration, progress }: WorkoutSessionIndicatorProps) => (
+  <div className="rounded-2xl border border-white/10 bg-zinc-950/85 px-4 py-3 text-sm shadow-glow backdrop-blur-sm">
+    <p className="text-[0.65rem] uppercase tracking-[0.24em] text-accent-300/80">Treino em andamento</p>
+    <div className="mt-2 flex items-center justify-between gap-3">
+      <p className="min-w-0 text-sm text-zinc-300">Tempo total da sessão</p>
+      <p className="shrink-0 text-base font-semibold tabular-nums text-zinc-50">{duration}</p>
     </div>
-    <p className="shrink-0 text-base font-semibold tabular-nums text-zinc-50">{duration}</p>
+    <div className="mt-3 flex items-baseline justify-between gap-3">
+      <p className="min-w-0 text-xs text-zinc-400">
+        {progress.completedExercises} de {progress.totalExercises} exercícios concluídos
+      </p>
+      <p className="shrink-0 text-sm font-semibold tabular-nums text-accent-300">{progress.percentage}%</p>
+    </div>
+    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10" aria-label={`${progress.percentage}% concluído`}>
+      <div className="h-full rounded-full bg-accent-500" style={{ width: `${progress.percentage}%` }} />
+    </div>
   </div>
 );
 
@@ -45,6 +57,7 @@ export const WorkoutPage = () => {
   const workout = workoutId ? workoutsById[workoutId] : null;
   const activeDraft = state.activeDraft?.workoutId === workoutId ? state.activeDraft : null;
   const duration = useWorkoutDuration(activeDraft?.startedAt);
+  const progress = activeDraft ? getWorkoutProgress(activeDraft) : null;
   const hasIncompleteSets = activeDraft?.exercises.some((exercise) => exercise.sets.some((set) => !set.completed)) ?? false;
   const hasRecordedActivity =
     activeDraft?.exercises.some((exercise) =>
@@ -110,7 +123,7 @@ export const WorkoutPage = () => {
       {isTraining ? (
         <>
           <section className="sticky z-10" style={{ top: 'max(env(safe-area-inset-top), 0.5rem)' }}>
-            <WorkoutSessionIndicator duration={duration} />
+            <WorkoutSessionIndicator duration={duration} progress={progress!} />
           </section>
 
           <RestTimer />

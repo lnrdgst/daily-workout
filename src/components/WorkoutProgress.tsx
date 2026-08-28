@@ -1,5 +1,6 @@
 import { workoutsById } from '@/data/workouts';
 import type { WorkoutSessionDraft } from '@/types/workout';
+import { getWorkoutProgress } from '@/utils/workoutProgress';
 
 interface WorkoutProgressProps {
   draft: WorkoutSessionDraft;
@@ -7,11 +8,7 @@ interface WorkoutProgressProps {
 
 export const WorkoutProgress = ({ draft }: WorkoutProgressProps) => {
   const workout = workoutsById[draft.workoutId];
-  const totalExercises = workout.exercises.length;
-  const completedExercises = draft.exercises.filter(
-    (exercise) => exercise.sets.length > 0 && exercise.sets.every((set) => set.completed),
-  ).length;
-  const progress = totalExercises === 0 ? 0 : Math.round((completedExercises / totalExercises) * 100);
+  const { totalExercises, completedExercises, percentage } = getWorkoutProgress(draft);
 
   return (
     <div className="panel p-4">
@@ -22,10 +19,10 @@ export const WorkoutProgress = ({ draft }: WorkoutProgressProps) => {
             {completedExercises} de {totalExercises} exercícios concluídos
           </p>
         </div>
-        <p className="text-2xl font-bold text-accent-300">{progress}%</p>
+        <p className="text-2xl font-bold text-accent-300">{percentage}%</p>
       </div>
       <div className="h-3 overflow-hidden rounded-full bg-white/5">
-        <div className="h-full rounded-full bg-accent-500 transition-all" style={{ width: `${progress}%` }} />
+        <div className="h-full rounded-full bg-accent-500 transition-all" style={{ width: `${percentage}%` }} />
       </div>
     </div>
   );
