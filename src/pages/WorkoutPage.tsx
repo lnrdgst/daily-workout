@@ -152,16 +152,13 @@ export const WorkoutPage = () => {
             })}
           </section>
 
-          <section className="grid grid-cols-2 gap-3">
+          <section>
             <button
               type="button"
               onClick={handleFinishRequest}
-              className="touch-button bg-accent-500 text-base font-semibold text-white"
+              className="touch-button w-full bg-accent-500 text-base font-semibold text-white"
             >
-              Finalizar
-            </button>
-            <button type="button" onClick={() => navigate('/')} className="touch-button bg-white/10 text-base text-zinc-100">
-              Voltar
+              Finalizar treino
             </button>
           </section>
         </>
