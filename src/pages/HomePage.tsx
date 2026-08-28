@@ -21,7 +21,6 @@ export const HomePage = () => {
         </p>
       </section>
 
-      <WorkoutProgress draft={state.activeDraft} />
 
       <section className="panel p-5">
         <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Sequência ABC</p>
@@ -29,7 +28,7 @@ export const HomePage = () => {
         <div className="mt-4 flex items-center gap-2 text-sm font-semibold" aria-label={`Progresso atual da sequência: ${sequenceProgress.currentStep} de 3 etapas concluídas`}>
           {sequenceSteps.map((step, index) => {
             const isComplete = index < sequenceProgress.currentStep;
-
+            
             return (
               <div key={step} className="contents">
                 <span className={`inline-flex min-w-10 items-center justify-center rounded-xl px-2 py-1.5 ${isComplete ? 'bg-accent-500/15 text-accent-300' : 'bg-white/5 text-zinc-400'}`}>
@@ -44,30 +43,35 @@ export const HomePage = () => {
           {sequenceProgress.completedSequences} sequência{sequenceProgress.completedSequences === 1 ? '' : 's'} concluída{sequenceProgress.completedSequences === 1 ? '' : 's'}
         </p>
       </section>
+          
 
-      <section className="panel p-5">
-        <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Último treino realizado</p>
+      {!state.activeDraft && (
+        <section className="panel p-5">
+          <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Último treino concluído</p>
         {lastWorkout ? (
           <div className="mt-2 flex items-center justify-between gap-4">
             <div>
               <h3 className="text-lg font-bold">{lastWorkout.workoutName}</h3>
               <p className="text-sm text-zinc-400">
-                {new Date(lastWorkout.finishedAt).toLocaleDateString('pt-BR')} às{' '}
-                {new Date(lastWorkout.finishedAt).toLocaleTimeString('pt-BR', {
+                {new Date(lastWorkout.finishedAt).toLocaleDateString('pt-BR')} {' '}
+                das{' '} {new Date(lastWorkout.startedAt).toLocaleTimeString('pt-BR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })} {' '}
+                às{' '} {new Date(lastWorkout.finishedAt).toLocaleTimeString('pt-BR', {
                   hour: '2-digit',
                   minute: '2-digit',
                 })}
               </p>
             </div>
-            <span className="rounded-full bg-accent-500/15 px-3 py-2 text-sm font-medium text-accent-300">
-              {lastWorkout.exercises.length} exercícios
-            </span>
           </div>
         ) : (
           <p className="mt-2 text-sm text-zinc-400">Você ainda não concluiu nenhum treino.</p>
         )}
-      </section>
+        </section>
+      )}
 
+      {state.activeDraft && <WorkoutProgress draft={state.activeDraft} />}
       <section className="space-y-4">
         {workouts.map((workout) => (
           <WorkoutCard

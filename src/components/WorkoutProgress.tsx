@@ -1,31 +1,26 @@
+import { workoutsById } from '@/data/workouts';
 import type { WorkoutSessionDraft } from '@/types/workout';
 
 interface WorkoutProgressProps {
-  draft: WorkoutSessionDraft | null;
+  draft: WorkoutSessionDraft;
 }
 
 export const WorkoutProgress = ({ draft }: WorkoutProgressProps) => {
-  if (!draft) {
-    return (
-      <div className="panel p-4">
-        <p className="text-sm text-zinc-400">Nenhum treino em andamento.</p>
-      </div>
-    );
-  }
-
-  const totalSets = draft.exercises.reduce((sum, exercise) => sum + exercise.sets.length, 0);
-  const completedSets = draft.exercises.reduce(
-    (sum, exercise) => sum + exercise.sets.filter((set) => set.completed).length,
-    0,
-  );
-  const progress = totalSets === 0 ? 0 : Math.round((completedSets / totalSets) * 100);
+  const workout = workoutsById[draft.workoutId];
+  const totalExercises = workout.exercises.length;
+  const completedExercises = draft.exercises.filter(
+    (exercise) => exercise.sets.length > 0 && exercise.sets.every((set) => set.completed),
+  ).length;
+  const progress = totalExercises === 0 ? 0 : Math.round((completedExercises / totalExercises) * 100);
 
   return (
     <div className="panel p-4">
       <div className="mb-3 flex items-center justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Progresso</p>
-          <p className="text-lg font-semibold">{completedSets} séries concluídas</p>
+          <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Progresso · {workout.name}</p>
+          <p className="text-lg font-semibold">
+            {completedExercises} de {totalExercises} exercícios concluídos
+          </p>
         </div>
         <p className="text-2xl font-bold text-accent-300">{progress}%</p>
       </div>
