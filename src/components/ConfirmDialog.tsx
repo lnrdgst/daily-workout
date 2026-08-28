@@ -27,6 +27,11 @@ export const ConfirmDialog = ({
   onCancel,
 }: ConfirmDialogProps) => {
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const onCancelRef = useRef(onCancel);
+
+  useEffect(() => {
+    onCancelRef.current = onCancel;
+  }, [onCancel]);
 
   useEffect(() => {
     if (!open) {
@@ -36,13 +41,13 @@ export const ConfirmDialog = ({
     cancelButtonRef.current?.focus();
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onCancel();
+        onCancelRef.current();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onCancel, open]);
+  }, [open]);
 
   if (!open) {
     return null;
