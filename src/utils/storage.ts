@@ -6,11 +6,18 @@ import type {
   Workout,
   WorkoutAppState,
   WorkoutId,
+  RestTimerSessionState,
   WorkoutSessionDraft,
   WorkoutSessionHistory,
 } from '@/types/workout';
 
 const STORAGE_KEY = 'daily-workout-state';
+
+export const defaultRestTimerState: RestTimerSessionState = {
+  status: 'ready',
+  selectedSeconds: 90,
+  endAt: null,
+};
 
 const createSetLog = (): ExerciseSetLog => ({
   load: '',
@@ -33,7 +40,32 @@ const defaultState: WorkoutAppState = {
   lastCompletedWorkoutId: null,
   lastOpenedWorkoutId: null,
   activeDraft: null,
+  restTimer: defaultRestTimerState,
   history: [],
+};
+
+const loadRestTimerState = (value: unknown): RestTimerSessionState => {
+  if (!value || typeof value !== 'object') {
+    return defaultRestTimerState;
+  }
+
+  const timer = value as Partial<RestTimerSessionState>;
+  const selectedSeconds =
+    timer.selectedSeconds === 60 || timer.selectedSeconds === 90 || timer.selectedSeconds === 120
+      ? timer.selectedSeconds
+      : defaultRestTimerState.selectedSeconds;
+  const endAt = typeof timer.endAt === 'number' ? timer.endAt : null;
+  const isRunning = timer.status === 'running' && endAt !== null;
+
+  if (isRunning) {
+    return { status: 'running', selectedSeconds, endAt };
+  }
+
+  return {
+    status: timer.status === 'finished' ? 'finished' : 'ready',
+    selectedSeconds,
+    endAt: null,
+  };
 };
 
 export const loadAppState = (): WorkoutAppState => {
@@ -51,6 +83,7 @@ export const loadAppState = (): WorkoutAppState => {
     return {
       ...defaultState,
       ...parsed,
+      restTimer: parsed.activeDraft ? loadRestTimerState(parsed.restTimer) : defaultRestTimerState,
     };
   } catch {
     return defaultState;

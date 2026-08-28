@@ -1,10 +1,8 @@
 import { Play, RotateCcw, Square } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { useRestAlertSettings } from '@/hooks/useRestAlertSettings';
-import { primeRestAlertSound, triggerRestFinishedAlerts } from '@/utils/restAlerts';
-import type { RestDurationSeconds } from '@/utils/restTimerSettings';
+import { useEffect, useState } from 'react';
+import { useWorkoutStore } from '@/hooks/useWorkoutStore';
 
-const presets = [60, 90, 120];
+const presets = [60, 90, 120] as const;
 
 const formatTime = (seconds: number) => {
   const minutes = Math.floor(seconds / 60)
@@ -14,123 +12,45 @@ const formatTime = (seconds: number) => {
   return `${minutes}:${remainder}`;
 };
 
-type RestTimerStatus = 'ready' | 'running' | 'finished';
-
-interface RestTimerProps {
-  autoStartRequest?: {
-    id: number;
-    seconds: RestDurationSeconds;
-  } | null;
-}
-
-export const RestTimer = ({ autoStartRequest = null }: RestTimerProps) => {
-  const [settings] = useRestAlertSettings();
-  const [selectedSeconds, setSelectedSeconds] = useState(90);
-  const [remainingSeconds, setRemainingSeconds] = useState(90);
-  const [status, setStatus] = useState<RestTimerStatus>('ready');
-  const intervalRef = useRef<number | null>(null);
-  const endAtRef = useRef<number | null>(null);
-  const hasAlertedRef = useRef(false);
-  const soundEnabledRef = useRef(settings.sound);
-  const isRunning = status === 'running';
-  const autoStartRequestId = autoStartRequest?.id ?? null;
-  const autoStartSeconds = autoStartRequest?.seconds ?? null;
-
-  useEffect(() => {
-    soundEnabledRef.current = settings.sound;
-  }, [settings.sound]);
+export const RestTimer = () => {
+  const { state, startRestTimer, stopRestTimer, selectRestTimerPreset } = useWorkoutStore();
+  const { restTimer } = state;
+  const [now, setNow] = useState(Date.now());
+  const isRunning = restTimer.status === 'running';
+  const remainingSeconds =
+    isRunning && restTimer.endAt !== null ? Math.max(0, Math.ceil((restTimer.endAt - now) / 1000)) : restTimer.status === 'finished' ? 0 : restTimer.selectedSeconds;
 
   useEffect(() => {
     if (!isRunning) {
-      if (intervalRef.current) {
-        window.clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
       return;
     }
 
-    const updateRemainingTime = () => {
-      const endAt = endAtRef.current;
-      if (!endAt) {
-        return;
-      }
+    setNow(Date.now());
+    const intervalId = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(intervalId);
+  }, [isRunning, restTimer.endAt]);
 
-      const nextRemainingSeconds = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
-      setRemainingSeconds(nextRemainingSeconds);
-
-      if (nextRemainingSeconds === 0) {
-        endAtRef.current = null;
-        setStatus('finished');
-        if (!hasAlertedRef.current) {
-          hasAlertedRef.current = true;
-          triggerRestFinishedAlerts(settings);
-        }
-      }
-    };
-
-    updateRemainingTime();
-    intervalRef.current = window.setInterval(updateRemainingTime, 1000);
-
-    return () => {
-      if (intervalRef.current) {
-        window.clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [isRunning, settings]);
-
-  const startTimer = (seconds = selectedSeconds) => {
-    hasAlertedRef.current = false;
-    endAtRef.current = Date.now() + seconds * 1000;
-    setSelectedSeconds(seconds);
-    setRemainingSeconds(seconds);
-    setStatus('running');
-    if (soundEnabledRef.current) {
-      primeRestAlertSound();
-    }
-  };
-
-  useEffect(() => {
-    if (autoStartRequestId === null || autoStartSeconds === null) {
-      return;
-    }
-
-    hasAlertedRef.current = false;
-    endAtRef.current = Date.now() + autoStartSeconds * 1000;
-    setSelectedSeconds(autoStartSeconds);
-    setRemainingSeconds(autoStartSeconds);
-    setStatus('running');
-    if (soundEnabledRef.current) {
-      primeRestAlertSound();
-    }
-  }, [autoStartRequestId, autoStartSeconds]);
-
-  const selectPreset = (seconds: number) => {
+  const selectPreset = (seconds: (typeof presets)[number]) => {
     if (isRunning) {
       return;
     }
 
-    endAtRef.current = null;
-    setSelectedSeconds(seconds);
-    setRemainingSeconds(seconds);
-    setStatus('ready');
+    selectRestTimerPreset(seconds);
   };
 
   const handlePrimaryAction = () => {
-    if (status === 'running') {
-      endAtRef.current = null;
-      setRemainingSeconds(selectedSeconds);
-      setStatus('ready');
+    if (isRunning) {
+      stopRestTimer();
       return;
     }
 
-    startTimer();
+    startRestTimer(restTimer.selectedSeconds);
   };
 
   const primaryAction =
-    status === 'running'
+    isRunning
       ? { label: 'Parar descanso', icon: <Square size={16} fill="currentColor" />, className: 'bg-white/15 text-zinc-100' }
-      : status === 'finished'
+      : restTimer.status === 'finished'
         ? { label: 'Repetir descanso', icon: <RotateCcw size={18} />, className: 'bg-white/10 text-accent-300' }
         : { label: 'Iniciar descanso', icon: <Play size={18} fill="currentColor" />, className: 'bg-accent-500 text-white' };
 
@@ -147,7 +67,7 @@ export const RestTimer = ({ autoStartRequest = null }: RestTimerProps) => {
               disabled={isRunning}
               onClick={() => selectPreset(seconds)}
               className={`min-h-10 rounded-xl px-1 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${
-                selectedSeconds === seconds ? 'bg-accent-500/20 text-accent-300' : 'bg-white/5 text-zinc-300'
+                restTimer.selectedSeconds === seconds ? 'bg-accent-500/20 text-accent-300' : 'bg-white/5 text-zinc-300'
               }`}
             >
               {seconds}s

@@ -49,6 +49,14 @@ export interface WorkoutSessionDraft {
   exercises: ExerciseSessionState[];
 }
 
+export type RestTimerStatus = 'ready' | 'running' | 'finished';
+
+export interface RestTimerSessionState {
+  status: RestTimerStatus;
+  selectedSeconds: 60 | 90 | 120;
+  endAt: number | null;
+}
+
 export interface WorkoutSessionHistory {
   id: string;
   workoutId: WorkoutId;
@@ -67,5 +75,6 @@ export interface WorkoutAppState {
   lastCompletedWorkoutId: WorkoutId | null;
   lastOpenedWorkoutId: WorkoutId | null;
   activeDraft: WorkoutSessionDraft | null;
+  restTimer: RestTimerSessionState;
   history: WorkoutSessionHistory[];
 }
