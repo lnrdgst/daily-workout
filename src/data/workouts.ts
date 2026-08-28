@@ -36,7 +36,7 @@ export const workouts: Workout[] = [
     exercises: [
       { id: 'hack-squat-c', name: 'Hack Squat ou agachamento', sets: 3, repsMin: 8, repsMax: 12, muscleGroup: 'Pernas', icon: 'squat' },
       { id: 'leg-curl-c', name: 'Cadeira ou mesa flexora', sets: 3, repsMin: 10, repsMax: 15, muscleGroup: 'Posterior', icon: 'leg-curl' },
-      { id: 'chest-press', name: 'Chest press ou máquina', sets: 3, repsMin: 8, repsMax: 12, muscleGroup: 'Peito', icon: 'chest-press' },
+      { id: 'chest-press', name: 'Supino máquina', sets: 3, repsMin: 8, repsMax: 12, muscleGroup: 'Peito', icon: 'chest-press' },
       { id: 'machine-row', name: 'Remada máquina ou cavalinho', sets: 3, repsMin: 8, repsMax: 12, muscleGroup: 'Costas', icon: 'row' },
       { id: 'lateral-raise-c', name: 'Elevação lateral', sets: 3, repsMin: 12, repsMax: 15, muscleGroup: 'Ombros', icon: 'lateral-raise' },
       { id: 'scott-curl', name: 'Rosca Scott', sets: 3, repsMin: 10, repsMax: 12, muscleGroup: 'Bíceps', icon: 'curl' },
