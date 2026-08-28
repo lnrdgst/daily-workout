@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { ActiveWorkoutBar } from '@/components/ActiveWorkoutBar';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { MainNavigation } from '@/components/MainNavigation';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { SplashScreen } from '@/components/SplashScreen';
+import { useStaleWorkoutDetection } from '@/hooks/useStaleWorkoutDetection';
 import { useWorkoutStore, WorkoutStoreProvider } from '@/hooks/useWorkoutStore';
 
 const SPLASH_STORAGE_KEY = 'daily-workout-splash-seen';
@@ -18,7 +20,8 @@ export const AppLayout = () => {
 
 const AppShell = () => {
   const location = useLocation();
-  const { state } = useWorkoutStore();
+  const { state, finishWorkout, discardDraft } = useWorkoutStore();
+  const { prompt: staleWorkoutPrompt, dismissPrompt } = useStaleWorkoutDetection(state.activeDraft);
   const showActiveWorkoutBar = Boolean(state.activeDraft) && !location.pathname.startsWith('/workout/');
   const isActiveWorkoutPage = location.pathname === `/workout/${state.activeDraft?.workoutId}`;
   const [showSplash, setShowSplash] = useState(() => {
@@ -71,6 +74,27 @@ const AppShell = () => {
         )}
       </div>
       {showSplash && <SplashScreen isExiting={isSplashExiting} />}
+      <ConfirmDialog
+        open={staleWorkoutPrompt !== null}
+        title="Treino ainda em andamento"
+        description={
+          staleWorkoutPrompt?.shouldRegister
+            ? 'Este treino está aberto há mais de 2 horas e já possui boa parte dos exercícios concluídos. Deseja encerrar e registrar no histórico?'
+            : 'Este treino está aberto há mais de 2 horas e possui poucos exercícios concluídos. Deseja encerrar sem registrar no histórico?'
+        }
+        cancelLabel="Continuar treino"
+        confirmLabel={staleWorkoutPrompt?.shouldRegister ? 'Encerrar e registrar' : 'Encerrar sem registrar'}
+        destructive
+        onCancel={dismissPrompt}
+        onConfirm={() => {
+          if (staleWorkoutPrompt?.shouldRegister) {
+            finishWorkout();
+          } else {
+            discardDraft();
+          }
+          dismissPrompt();
+        }}
+      />
     </>
   );
 };
