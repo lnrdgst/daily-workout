@@ -106,19 +106,21 @@ export const WorkoutPage = () => {
       {isTraining && (
         <MainNavigation className="grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-surface-900/80 p-2 shadow-glow backdrop-blur" />
       )}
-      <section className="panel p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-accent-300">{workout.id}</p>
-            <h2 className="mt-1 text-2xl font-bold">{workout.name}</h2>
-            <p className="mt-2 text-sm text-zinc-400">{workout.description}</p>
+      {!isTraining && (
+        <section className="panel p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.24em] text-accent-300">{workout.id}</p>
+              <h2 className="mt-1 text-2xl font-bold">{workout.name}</h2>
+              <p className="mt-2 text-sm text-zinc-400">{workout.description}</p>
+            </div>
+            <div className="rounded-2xl bg-white/5 px-3 py-2 text-right">
+              <p className="text-xs text-zinc-500">Ficha</p>
+              <p className="text-sm font-semibold tabular-nums">Visualização</p>
+            </div>
           </div>
-          <div className="rounded-2xl bg-white/5 px-3 py-2 text-right">
-            <p className="text-xs text-zinc-500">{isTraining ? 'Status' : 'Ficha'}</p>
-            <p className="text-sm font-semibold tabular-nums">{isTraining ? 'Ativo' : 'Visualização'}</p>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {isTraining ? (
         <>
