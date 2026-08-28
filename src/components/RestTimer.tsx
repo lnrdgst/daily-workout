@@ -2,6 +2,7 @@ import { Play, RotateCcw, Square } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useRestAlertSettings } from '@/hooks/useRestAlertSettings';
 import { primeRestAlertSound, triggerRestFinishedAlerts } from '@/utils/restAlerts';
+import type { RestDurationSeconds } from '@/utils/restTimerSettings';
 
 const presets = [60, 90, 120];
 
@@ -15,7 +16,14 @@ const formatTime = (seconds: number) => {
 
 type RestTimerStatus = 'ready' | 'running' | 'finished';
 
-export const RestTimer = () => {
+interface RestTimerProps {
+  autoStartRequest?: {
+    id: number;
+    seconds: RestDurationSeconds;
+  } | null;
+}
+
+export const RestTimer = ({ autoStartRequest = null }: RestTimerProps) => {
   const [settings] = useRestAlertSettings();
   const [selectedSeconds, setSelectedSeconds] = useState(90);
   const [remainingSeconds, setRemainingSeconds] = useState(90);
@@ -23,7 +31,14 @@ export const RestTimer = () => {
   const intervalRef = useRef<number | null>(null);
   const endAtRef = useRef<number | null>(null);
   const hasAlertedRef = useRef(false);
+  const soundEnabledRef = useRef(settings.sound);
   const isRunning = status === 'running';
+  const autoStartRequestId = autoStartRequest?.id ?? null;
+  const autoStartSeconds = autoStartRequest?.seconds ?? null;
+
+  useEffect(() => {
+    soundEnabledRef.current = settings.sound;
+  }, [settings.sound]);
 
   useEffect(() => {
     if (!isRunning) {
@@ -64,15 +79,31 @@ export const RestTimer = () => {
     };
   }, [isRunning, settings]);
 
-  const startTimer = () => {
+  const startTimer = (seconds = selectedSeconds) => {
     hasAlertedRef.current = false;
-    endAtRef.current = Date.now() + selectedSeconds * 1000;
-    setRemainingSeconds(selectedSeconds);
+    endAtRef.current = Date.now() + seconds * 1000;
+    setSelectedSeconds(seconds);
+    setRemainingSeconds(seconds);
     setStatus('running');
-    if (settings.sound) {
+    if (soundEnabledRef.current) {
       primeRestAlertSound();
     }
   };
+
+  useEffect(() => {
+    if (autoStartRequestId === null || autoStartSeconds === null) {
+      return;
+    }
+
+    hasAlertedRef.current = false;
+    endAtRef.current = Date.now() + autoStartSeconds * 1000;
+    setSelectedSeconds(autoStartSeconds);
+    setRemainingSeconds(autoStartSeconds);
+    setStatus('running');
+    if (soundEnabledRef.current) {
+      primeRestAlertSound();
+    }
+  }, [autoStartRequestId, autoStartSeconds]);
 
   const selectPreset = (seconds: number) => {
     if (isRunning) {

@@ -6,6 +6,7 @@ import { ExerciseIcon } from '@/components/ExerciseIcon';
 import { MainNavigation } from '@/components/MainNavigation';
 import { RestTimer } from '@/components/RestTimer';
 import { workoutsById } from '@/data/workouts';
+import { useRestTimerSettings } from '@/hooks/useRestTimerSettings';
 import { getWorkoutDurationSeconds, useWorkoutDuration } from '@/hooks/useWorkoutDuration';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
 
@@ -27,8 +28,10 @@ export const WorkoutPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { state, startWorkout, updateSet, toggleSetCompleted, finishWorkout, discardDraft, getPreviousExerciseSets } = useWorkoutStore();
+  const [restTimerSettings] = useRestTimerSettings();
   const [isFinishDialogOpen, setIsFinishDialogOpen] = useState(false);
   const [isAccidentalFinishDialogOpen, setIsAccidentalFinishDialogOpen] = useState(false);
+  const [restTimerAutoStartId, setRestTimerAutoStartId] = useState<number | null>(null);
 
   const workoutId = id === 'A' || id === 'B' || id === 'C' ? id : null;
   const workout = workoutId ? workoutsById[workoutId] : null;
@@ -39,6 +42,13 @@ export const WorkoutPage = () => {
     activeDraft?.exercises.some((exercise) =>
       exercise.sets.some((set) => set.completed || set.load.trim() !== '' || set.reps.trim() !== ''),
     ) ?? false;
+  const restTimerAutoStartRequest =
+    activeDraft === null || restTimerAutoStartId === null
+      ? null
+      : {
+          id: restTimerAutoStartId,
+          seconds: restTimerSettings.defaultRestSeconds,
+        };
 
   const handleFinishRequest = () => {
     if (!activeDraft) {
@@ -52,6 +62,16 @@ export const WorkoutPage = () => {
     }
 
     setIsFinishDialogOpen(true);
+  };
+
+  const handleSetCompletedToggle = (exerciseId: string, setIndex: number, isCurrentlyCompleted: boolean) => {
+    toggleSetCompleted(exerciseId, setIndex);
+
+    if (!activeDraft || isCurrentlyCompleted) {
+      return;
+    }
+
+    setRestTimerAutoStartId((current) => (current === null ? 1 : current + 1));
   };
 
   if (!workoutId || !workout) {
@@ -92,7 +112,7 @@ export const WorkoutPage = () => {
             <WorkoutSessionIndicator duration={duration} />
           </section>
 
-          <RestTimer />
+          <RestTimer autoStartRequest={restTimerAutoStartRequest} />
 
           <section className="space-y-4">
             {workout.exercises.map((exercise) => {
@@ -108,7 +128,9 @@ export const WorkoutPage = () => {
                   sessionState={sessionState}
                   previousSets={getPreviousExerciseSets(exercise.id)}
                   onSetChange={(setIndex, patch) => updateSet(exercise.id, setIndex, patch)}
-                  onToggleCompleted={(setIndex) => toggleSetCompleted(exercise.id, setIndex)}
+                  onToggleCompleted={(setIndex, isCurrentlyCompleted) =>
+                    handleSetCompletedToggle(exercise.id, setIndex, isCurrentlyCompleted)
+                  }
                 />
               );
             })}

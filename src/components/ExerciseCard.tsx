@@ -9,7 +9,7 @@ interface ExerciseCardProps {
   sessionState: ExerciseSessionState;
   previousSets: ExerciseSetLog[] | null;
   onSetChange: (setIndex: number, patch: Partial<ExerciseSetLog>) => void;
-  onToggleCompleted: (setIndex: number) => void;
+  onToggleCompleted: (setIndex: number, isCurrentlyCompleted: boolean) => void;
 }
 
 const AUTO_COLLAPSE_DELAY_MS = 550;
@@ -102,7 +102,7 @@ export const ExerciseCard = ({
                 set={set}
                 previousSet={previousSets?.[index]}
                 onChange={(patch) => onSetChange(index, patch)}
-                onToggleCompleted={() => onToggleCompleted(index)}
+                onToggleCompleted={() => onToggleCompleted(index, set.completed)}
               />
             ))}
           </div>

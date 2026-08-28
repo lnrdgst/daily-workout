@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useRestAlertSettings } from '@/hooks/useRestAlertSettings';
+import { useRestTimerSettings } from '@/hooks/useRestTimerSettings';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
 import { getLastWorkout } from '@/utils/storage';
 import type { RestAlertSettings, RestAlertVolume } from '@/utils/restAlertSettings';
+import type { RestDurationSeconds } from '@/utils/restTimerSettings';
 import { formatWorkoutTimeRange } from '@/utils/workoutTiming';
 
 interface AlertToggleProps {
@@ -41,9 +43,12 @@ const alertVolumeOptions: Array<{ value: RestAlertVolume; label: string }> = [
   { value: 'high', label: 'Alto' },
 ];
 
+const restDurationOptions: RestDurationSeconds[] = [60, 90, 120];
+
 export const SettingsPage = () => {
   const { state, clearHistory, discardDraft } = useWorkoutStore();
   const [alertSettings, setAlertSettings] = useRestAlertSettings();
+  const [restTimerSettings, setRestTimerSettings] = useRestTimerSettings();
   const [dialog, setDialog] = useState<'discard-draft' | 'clear-history' | null>(null);
   const [notificationFeedback, setNotificationFeedback] = useState<string | null>(null);
   const lastWorkout = getLastWorkout(state.history, state.lastCompletedWorkoutId);
@@ -91,6 +96,10 @@ export const SettingsPage = () => {
     setAlertSettings((current) => ({ ...current, volume }));
   };
 
+  const setDefaultRestSeconds = (defaultRestSeconds: RestDurationSeconds) => {
+    setRestTimerSettings({ defaultRestSeconds });
+  };
+
   return (
     <div className="space-y-4">
       <section className="panel p-5">
@@ -131,6 +140,27 @@ export const SettingsPage = () => {
           onClick={() => void toggleNotifications()}
         />
         {notificationStatusMessage && <p className="px-1 pt-1 text-xs text-zinc-400">{notificationStatusMessage}</p>}
+      </section>
+
+      <section className="panel space-y-3 p-5">
+        <div>
+          <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Descanso</p>
+          <p className="mt-2 text-sm text-zinc-400">Defina o tempo padrão usado ao concluir uma série durante o treino.</p>
+        </div>
+        <div className="grid grid-cols-3 gap-2" role="group" aria-label="Tempo padrão de descanso">
+          {restDurationOptions.map((seconds) => (
+            <button
+              key={seconds}
+              type="button"
+              onClick={() => setDefaultRestSeconds(seconds)}
+              className={`min-h-11 rounded-xl px-2 text-sm font-medium transition ${
+                restTimerSettings.defaultRestSeconds === seconds ? 'bg-accent-500 text-white' : 'bg-white/5 text-zinc-300'
+              }`}
+            >
+              {seconds}s
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="panel space-y-4 p-5">
