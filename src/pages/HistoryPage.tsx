@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
 import { formatWorkoutTimeRange } from '@/utils/workoutTiming';
@@ -7,6 +7,7 @@ import { formatWorkoutTimeRange } from '@/utils/workoutTiming';
 export const HistoryPage = () => {
   const { state, deleteHistoryEntry } = useWorkoutStore();
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
   const history = [...state.history].reverse();
 
   return (
@@ -22,23 +23,38 @@ export const HistoryPage = () => {
       ) : (
         history.map((session) => {
           const timing = formatWorkoutTimeRange(session.startedAt, session.finishedAt);
+          const isExpanded = expandedHistoryId === session.id;
+          const detailsId = `history-session-${session.id}`;
 
           return (
-            <article key={session.id} className="panel p-5">
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-accent-300">{session.workoutName}</p>
-                <h3 className="mt-1 text-lg font-bold">{new Date(session.finishedAt).toLocaleDateString('pt-BR')}</h3>
-                <p className="text-sm text-zinc-400">
-                  {new Date(session.finishedAt).toLocaleTimeString('pt-BR', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </p>
-                {timing && <p className="mt-1 text-xs text-zinc-500">{timing}</p>}
-              </div>
-              <div className="flex shrink-0 flex-col items-end gap-2">
-                <span className="rounded-full bg-white/5 px-3 py-2 text-xs text-zinc-300">{session.exercises.length} exercícios</span>
+            <article key={session.id} className="panel p-4">
+              <div className="flex items-start gap-2">
+                <button
+                  type="button"
+                  onClick={() => setExpandedHistoryId((current) => (current === session.id ? null : session.id))}
+                  aria-expanded={isExpanded}
+                  aria-controls={detailsId}
+                  className="flex min-w-0 flex-1 items-start justify-between gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/70"
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs uppercase tracking-[0.24em] text-accent-300">{session.workoutName}</p>
+                    <h3 className="mt-1 text-lg font-bold">{new Date(session.finishedAt).toLocaleDateString('pt-BR')}</h3>
+                    {timing ? (
+                      <p className="mt-1 text-xs text-zinc-500">{timing}</p>
+                    ) : (
+                      <p className="mt-1 text-sm text-zinc-400">
+                        {new Date(session.finishedAt).toLocaleTimeString('pt-BR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2 text-zinc-300">
+                    <span className="rounded-full bg-white/5 px-3 py-2 text-xs">{session.exercises.length} exercícios</span>
+                    {isExpanded ? <ChevronUp size={20} aria-hidden="true" /> : <ChevronDown size={20} aria-hidden="true" />}
+                  </div>
+                </button>
                 <button
                   type="button"
                   onClick={() => setSelectedEntryId(session.id)}
@@ -49,29 +65,37 @@ export const HistoryPage = () => {
                   Excluir
                 </button>
               </div>
-            </div>
 
-            <div className="space-y-3">
-              {session.exercises.map((exercise) => (
-                <div key={exercise.exerciseId} className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <div>
-                      <h4 className="font-semibold">{exercise.exerciseName}</h4>
-                      <p className="text-xs text-zinc-500">{exercise.muscleGroup}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-sm text-zinc-300">
-                    {exercise.sets.map((set, index) => (
-                      <div key={`${exercise.exerciseId}-${index}`} className="rounded-2xl bg-white/5 p-3">
-                        <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Série {index + 1}</p>
-                        <p className="mt-1 font-medium">{set.load || '-'} kg</p>
-                        <p className="text-zinc-400">{set.reps || '-'} reps</p>
+              <div
+                id={detailsId}
+                className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${
+                  isExpanded ? 'mt-4 grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                }`}
+              >
+                <div className="min-h-0 overflow-hidden">
+                  <div className="space-y-3">
+                    {session.exercises.map((exercise) => (
+                      <div key={exercise.exerciseId} className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                        <div className="mb-2 flex items-center justify-between gap-3">
+                          <div>
+                            <h4 className="font-semibold">{exercise.exerciseName}</h4>
+                            <p className="text-xs text-zinc-500">{exercise.muscleGroup}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-sm text-zinc-300">
+                          {exercise.sets.map((set, index) => (
+                            <div key={`${exercise.exerciseId}-${index}`} className="rounded-2xl bg-white/5 p-3">
+                              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Série {index + 1}</p>
+                              <p className="mt-1 font-medium">{set.load || '-'} kg</p>
+                              <p className="text-zinc-400">{set.reps || '-'} reps</p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
             </article>
           );
         })
@@ -88,6 +112,9 @@ export const HistoryPage = () => {
         onConfirm={() => {
           if (selectedEntryId) {
             deleteHistoryEntry(selectedEntryId);
+            if (expandedHistoryId === selectedEntryId) {
+              setExpandedHistoryId(null);
+            }
           }
           setSelectedEntryId(null);
         }}
