@@ -1,4 +1,5 @@
-import { workouts } from '@/data/workouts';
+import { workouts, workoutsById } from '@/data/workouts';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
 import { getLastWorkout } from '@/utils/storage';
 import { getWorkoutSequenceProgress } from '@/utils/workoutSequence';
@@ -7,17 +8,25 @@ import { WorkoutProgress } from '@/components/WorkoutProgress';
 
 export const HomePage = () => {
   const { state } = useWorkoutStore();
+  const [userPreferences] = useUserPreferences();
   const lastWorkout = getLastWorkout(state.history, state.lastCompletedWorkoutId);
   const sequenceProgress = getWorkoutSequenceProgress(state.history);
   const sequenceSteps = ['A', 'B', 'C'] as const;
+  const hour = new Date().getHours();
+  const greeting = hour >= 5 && hour < 12 ? 'Bom dia' : hour >= 12 && hour < 18 ? 'Boa tarde' : 'Boa noite';
+  const displayName = userPreferences.displayName.trim();
+  const greetingLabel = displayName ? `${greeting}, ${displayName}` : greeting;
+  const welcomeTitle = state.activeDraft
+    ? `Seu ${workoutsById[state.activeDraft.workoutId].name} está em andamento.`
+    : 'Pronto para o próximo treino?';
 
   return (
     <div className="space-y-5">
       <section className="panel overflow-hidden p-5">
-        <p className="text-xs uppercase tracking-[0.3em] text-accent-300/80">Full body 3x</p>
-        <h2 className="mt-2 text-3xl font-bold leading-tight">Treino rápido, claro e pronto para usar na academia.</h2>
+        <p className="text-xs uppercase tracking-[0.3em] text-accent-300/80">{greetingLabel}</p>
+        <h2 className="mt-2 text-3xl font-bold leading-tight">{welcomeTitle}</h2>
         <p className="mt-3 text-sm text-zinc-400">
-          Registre cargas, repetições e acompanhe cada sessão sem depender de papel ou planilha.
+          Registre suas cargas, repetições e acompanhe sua evolução a cada sessão.
         </p>
       </section>
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useRestAlertSettings } from '@/hooks/useRestAlertSettings';
 import { useRestTimerSettings } from '@/hooks/useRestTimerSettings';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
 import { getLastWorkout } from '@/utils/storage';
 import type { RestAlertSettings, RestAlertVolume } from '@/utils/restAlertSettings';
@@ -49,6 +50,7 @@ export const SettingsPage = () => {
   const { state, clearHistory, discardDraft } = useWorkoutStore();
   const [alertSettings, setAlertSettings] = useRestAlertSettings();
   const [restTimerSettings, setRestTimerSettings] = useRestTimerSettings();
+  const [userPreferences, setUserPreferences] = useUserPreferences();
   const [dialog, setDialog] = useState<'discard-draft' | 'clear-history' | null>(null);
   const [clearHistoryCode, setClearHistoryCode] = useState('');
   const [clearHistoryInput, setClearHistoryInput] = useState('');
@@ -122,6 +124,22 @@ export const SettingsPage = () => {
         <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Ajustes</p>
         <h2 className="mt-1 text-2xl font-bold">Controle local</h2>
         <p className="mt-2 text-sm text-zinc-400">Tudo fica salvo no seu aparelho.</p>
+      </section>
+
+      <section className="panel p-5">
+        <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Perfil</p>
+        <label className="mt-3 block text-sm font-medium text-zinc-200" htmlFor="display-name">
+          Nome
+        </label>
+        <input
+          id="display-name"
+          type="text"
+          maxLength={60}
+          value={userPreferences.displayName}
+          onChange={(event) => setUserPreferences({ displayName: event.target.value })}
+          className="mt-2 min-h-11 w-full rounded-2xl border border-white/10 bg-white/5 px-3 text-zinc-100 outline-none transition focus:border-accent-400/70 focus:ring-2 focus:ring-accent-400/30"
+        />
+        <p className="mt-2 text-sm text-zinc-400">Usado apenas para personalizar sua experiência no aplicativo.</p>
       </section>
 
       <section className="panel space-y-2 p-5">
