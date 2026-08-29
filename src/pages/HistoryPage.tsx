@@ -23,6 +23,7 @@ export const HistoryPage = () => {
       ) : (
         history.map((session) => {
           const timing = formatWorkoutTimeRange(session.startedAt, session.finishedAt);
+          const [timeRange, duration] = timing?.split(' \u00b7 ') ?? [];
           const isExpanded = expandedHistoryId === session.id;
           const detailsId = `history-session-${session.id}`;
 
@@ -40,7 +41,10 @@ export const HistoryPage = () => {
                     <p className="text-xs uppercase tracking-[0.24em] text-accent-300">{session.workoutName}</p>
                     <h3 className="mt-1 text-lg font-bold">{new Date(session.finishedAt).toLocaleDateString('pt-BR')}</h3>
                     {timing ? (
-                      <p className="mt-1 text-xs text-zinc-500">{timing}</p>
+                      <div className="mt-1 text-xs text-zinc-500">
+                        <p>{timeRange}</p>
+                        {duration && <p className="mt-0.5 whitespace-nowrap text-zinc-600">{duration}</p>}
+                      </div>
                     ) : (
                       <p className="mt-1 text-sm text-zinc-400">
                         {new Date(session.finishedAt).toLocaleTimeString('pt-BR', {
