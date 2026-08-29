@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useRestAlertSettings } from '@/hooks/useRestAlertSettings';
 import { useRestTimerSettings } from '@/hooks/useRestTimerSettings';
@@ -50,11 +50,16 @@ export const SettingsPage = () => {
   const { state, clearHistory, discardDraft } = useWorkoutStore();
   const [alertSettings, setAlertSettings] = useRestAlertSettings();
   const [restTimerSettings, setRestTimerSettings] = useRestTimerSettings();
-  const [userPreferences, setUserPreferences] = useUserPreferences();
+  const [userPreferences, saveUserPreferences] = useUserPreferences();
+  const [displayName, setDisplayName] = useState(() => userPreferences.displayName);
+  const [isDisplayNameSaved, setIsDisplayNameSaved] = useState(false);
   const [dialog, setDialog] = useState<'discard-draft' | 'clear-history' | null>(null);
   const [clearHistoryCode, setClearHistoryCode] = useState('');
   const [clearHistoryInput, setClearHistoryInput] = useState('');
   const [notificationFeedback, setNotificationFeedback] = useState<string | null>(null);
+  const displayNameSaveTimeoutRef = useRef<number | null>(null);
+  const displayNameFeedbackTimeoutRef = useRef<number | null>(null);
+  const isDisplayNameSavePendingRef = useRef(false);
   const lastWorkout = getLastWorkout(state.history, state.lastCompletedWorkoutId);
   const timing = lastWorkout ? formatWorkoutTimeRange(lastWorkout.startedAt, lastWorkout.finishedAt) : null;
   const notificationSupported = typeof Notification !== 'undefined';
@@ -104,6 +109,61 @@ export const SettingsPage = () => {
     setRestTimerSettings({ defaultRestSeconds });
   };
 
+  const clearDisplayNameFeedback = () => {
+    if (displayNameFeedbackTimeoutRef.current !== null) {
+      window.clearTimeout(displayNameFeedbackTimeoutRef.current);
+      displayNameFeedbackTimeoutRef.current = null;
+    }
+    setIsDisplayNameSaved(false);
+  };
+
+  const saveDisplayName = (nextDisplayName: string) => {
+    if (displayNameSaveTimeoutRef.current !== null) {
+      window.clearTimeout(displayNameSaveTimeoutRef.current);
+      displayNameSaveTimeoutRef.current = null;
+    }
+
+    isDisplayNameSavePendingRef.current = false;
+    const trimmedDisplayName = nextDisplayName.trim();
+    saveUserPreferences({ displayName: trimmedDisplayName });
+    setDisplayName(trimmedDisplayName);
+    clearDisplayNameFeedback();
+    setIsDisplayNameSaved(true);
+    displayNameFeedbackTimeoutRef.current = window.setTimeout(() => {
+      setIsDisplayNameSaved(false);
+      displayNameFeedbackTimeoutRef.current = null;
+    }, 2000);
+  };
+
+  const handleDisplayNameChange = (nextDisplayName: string) => {
+    setDisplayName(nextDisplayName);
+    clearDisplayNameFeedback();
+
+    if (displayNameSaveTimeoutRef.current !== null) {
+      window.clearTimeout(displayNameSaveTimeoutRef.current);
+    }
+
+    isDisplayNameSavePendingRef.current = true;
+    displayNameSaveTimeoutRef.current = window.setTimeout(() => saveDisplayName(nextDisplayName), 500);
+  };
+
+  const handleDisplayNameBlur = () => {
+    if (isDisplayNameSavePendingRef.current) {
+      saveDisplayName(displayName);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (displayNameSaveTimeoutRef.current !== null) {
+        window.clearTimeout(displayNameSaveTimeoutRef.current);
+      }
+      if (displayNameFeedbackTimeoutRef.current !== null) {
+        window.clearTimeout(displayNameFeedbackTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const openClearHistoryDialog = () => {
     setClearHistoryCode(String(Math.floor(Math.random() * 9000) + 1000));
     setClearHistoryInput('');
@@ -135,11 +195,14 @@ export const SettingsPage = () => {
           id="display-name"
           type="text"
           maxLength={60}
-          value={userPreferences.displayName}
-          onChange={(event) => setUserPreferences({ displayName: event.target.value })}
+          value={displayName}
+          onChange={(event) => handleDisplayNameChange(event.target.value)}
+          onBlur={handleDisplayNameBlur}
           className="mt-2 min-h-11 w-full rounded-2xl border border-white/10 bg-white/5 px-3 text-zinc-100 outline-none transition focus:border-accent-400/70 focus:ring-2 focus:ring-accent-400/30"
         />
-        <p className="mt-2 text-sm text-zinc-400">Usado apenas para personalizar sua experiência no aplicativo.</p>
+        <p className={`mt-2 text-sm ${isDisplayNameSaved ? 'text-success' : 'text-zinc-400'}`}>
+          {isDisplayNameSaved ? '✓ Nome salvo' : 'Usado apenas para personalizar sua experiência no aplicativo.'}
+        </p>
       </section>
 
       <section className="panel space-y-2 p-5">
@@ -179,7 +242,7 @@ export const SettingsPage = () => {
       <section className="panel space-y-3 p-5">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Descanso</p>
-          <p className="mt-2 text-sm text-zinc-400">Defina o tempo padrão usado ao concluir uma série durante o treino.</p>
+          <p className="mt-2 text-sm text-zinc-400">Defina o tempo padrão do crônometro usado ao concluir uma série durante o treino.</p>
         </div>
         <div className="grid grid-cols-3 gap-2" role="group" aria-label="Tempo padrão de descanso">
           {restDurationOptions.map((seconds) => (
