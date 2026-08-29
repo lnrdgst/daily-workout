@@ -6,6 +6,7 @@ import { MainNavigation } from '@/components/MainNavigation';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { SplashScreen } from '@/components/SplashScreen';
 import { useStaleWorkoutDetection } from '@/hooks/useStaleWorkoutDetection';
+import { useVisualViewportKeyboardOffset } from '@/hooks/useVisualViewportKeyboardOffset';
 import { useWorkoutStore, WorkoutStoreProvider } from '@/hooks/useWorkoutStore';
 
 const SPLASH_STORAGE_KEY = 'daily-workout-splash-seen';
@@ -22,6 +23,7 @@ const AppShell = () => {
   const location = useLocation();
   const { state, finishWorkout, discardDraft } = useWorkoutStore();
   const { prompt: staleWorkoutPrompt, dismissPrompt } = useStaleWorkoutDetection(state.activeDraft);
+  const keyboardOffset = useVisualViewportKeyboardOffset();
   const showActiveWorkoutBar = Boolean(state.activeDraft) && !location.pathname.startsWith('/workout/');
   const isActiveWorkoutPage = location.pathname === `/workout/${state.activeDraft?.workoutId}`;
   const [showSplash, setShowSplash] = useState(() => {
@@ -70,7 +72,10 @@ const AppShell = () => {
         {showActiveWorkoutBar && <ActiveWorkoutBar draft={state.activeDraft!} />}
 
         {!isActiveWorkoutPage && (
-          <MainNavigation className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-20 flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 gap-2 rounded-3xl border border-white/10 bg-surface-900/95 p-2 shadow-glow backdrop-blur" />
+          <MainNavigation
+            className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-20 flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 gap-2 rounded-3xl border border-white/10 bg-surface-900/95 p-2 shadow-glow backdrop-blur"
+            style={keyboardOffset > 0 ? { bottom: `${keyboardOffset}px` } : undefined}
+          />
         )}
       </div>
       {showSplash && <SplashScreen isExiting={isSplashExiting} />}

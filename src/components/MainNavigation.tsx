@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import type { CSSProperties } from 'react';
 
 const navItems = [
   { to: '/', label: 'Treinos' },
@@ -8,10 +9,11 @@ const navItems = [
 
 interface MainNavigationProps {
   className: string;
+  style?: CSSProperties;
 }
 
-export const MainNavigation = ({ className }: MainNavigationProps) => (
-  <nav aria-label="Navegação principal" className={className}>
+export const MainNavigation = ({ className, style }: MainNavigationProps) => (
+  <nav aria-label="Navegação principal" className={className} style={style}>
     {navItems.map((item) => (
       <NavLink
         key={item.to}
