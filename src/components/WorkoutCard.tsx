@@ -28,7 +28,11 @@ export const WorkoutCard = ({ workout, lastSession, completedSessionCount }: Wor
         {lastSession ? (
           <>
             <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Última vez</p>
-            <p className="mt-1 font-medium">{new Date(lastSession.finishedAt).toLocaleDateString('pt-BR')}</p>
+            <p className="mt-1 font-medium">
+              {new Date(lastSession.finishedAt).toLocaleDateString('pt-BR')} das{' '}
+              {new Date(lastSession.startedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} às{' '}
+              {new Date(lastSession.finishedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </p>
           </>
         ) : (
           <p className="text-zinc-400">Ainda sem sessões registradas.</p>
