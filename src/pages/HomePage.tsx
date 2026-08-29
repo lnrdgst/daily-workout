@@ -78,6 +78,7 @@ export const HomePage = () => {
             key={workout.id}
             workout={workout}
             lastSession={[...state.history].reverse().find((session) => session.workoutId === workout.id) ?? null}
+            completedSessionCount={state.history.filter((session) => session.workoutId === workout.id).length}
           />
         ))}
       </section>

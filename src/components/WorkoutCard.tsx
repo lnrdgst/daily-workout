@@ -4,14 +4,17 @@ import type { Workout, WorkoutSessionHistory } from '@/types/workout';
 interface WorkoutCardProps {
   workout: Workout;
   lastSession: WorkoutSessionHistory | null;
+  completedSessionCount: number;
 }
 
-export const WorkoutCard = ({ workout, lastSession }: WorkoutCardProps) => {
+export const WorkoutCard = ({ workout, lastSession, completedSessionCount }: WorkoutCardProps) => {
+  const completedSessionLabel = `${completedSessionCount} treino${completedSessionCount === 1 ? '' : 's'} concluído${completedSessionCount === 1 ? '' : 's'}`;
+
   return (
     <article className="panel p-5">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm uppercase tracking-[0.24em] text-accent-300">{workout.id}</p>
+          <p className="text-xs uppercase tracking-[0.24em] text-accent-300">{completedSessionLabel}</p>
           <h2 className="mt-1 text-xl font-bold">{workout.name}</h2>
           <p className="mt-2 text-sm text-zinc-400">{workout.description}</p>
         </div>
