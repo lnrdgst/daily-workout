@@ -198,27 +198,30 @@ export const SettingsPage = () => {
       </section>
 
       <section className="panel space-y-4 p-5">
+        <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Histórico local</p>
         <div className="rounded-2xl bg-white/5 p-4">
           <p className="text-sm text-zinc-400">Último treino concluído</p>
           <p className="mt-1 text-lg font-semibold">{state.lastCompletedWorkoutId ? `Treino ${state.lastCompletedWorkoutId}` : 'Nenhum'}</p>
           {timing && <p className="mt-1 text-xs text-zinc-500">{timing}</p>}
         </div>
         <div className="rounded-2xl bg-white/5 p-4">
-          <p className="text-sm text-zinc-400">Treinos concluídos - Total</p>
+          <p className="text-sm text-zinc-400">Treinos contabilizados</p>
           <p className="mt-1 text-lg font-semibold">{state.history.length}</p>
+        </div>
+        <div className="border-t border-white/10 pt-4">
+          <button type="button" onClick={openClearHistoryDialog} className="touch-button w-full bg-danger text-white">
+            Apagar histórico local
+          </button>
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-3">
-        {state.activeDraft && (
+      {state.activeDraft && (
+        <section className="grid grid-cols-1 gap-3">
           <button type="button" onClick={() => setDialog('discard-draft')} className="touch-button bg-white/10 text-zinc-100">
             Limpar treino em andamento
           </button>
-        )}
-        <button type="button" onClick={openClearHistoryDialog} className="touch-button bg-danger text-white">
-          Apagar histórico local
-        </button>
-      </section>
+        </section>
+      )}
 
       <ConfirmDialog
         open={dialog === 'discard-draft'}
