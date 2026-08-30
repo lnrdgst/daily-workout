@@ -59,17 +59,14 @@ export const WorkoutPage = () => {
   const duration = useWorkoutDuration(activeDraft?.startedAt);
   const progress = activeDraft ? getWorkoutProgress(activeDraft) : null;
   const hasIncompleteSets = activeDraft?.exercises.some((exercise) => exercise.sets.some((set) => !set.completed)) ?? false;
-  const hasRecordedActivity =
-    activeDraft?.exercises.some((exercise) =>
-      exercise.sets.some((set) => set.completed || set.load.trim() !== '' || set.reps.trim() !== ''),
-    ) ?? false;
+  const hasCompletedSet = activeDraft?.exercises.some((exercise) => exercise.sets.some((set) => set.completed)) ?? false;
 
   const handleFinishRequest = () => {
     if (!activeDraft) {
       return;
     }
 
-    const isAccidentalSession = getWorkoutDurationSeconds(activeDraft.startedAt) < 60 && !hasRecordedActivity;
+    const isAccidentalSession = getWorkoutDurationSeconds(activeDraft.startedAt) < 60 && !hasCompletedSet;
     if (isAccidentalSession) {
       setIsAccidentalFinishDialogOpen(true);
       return;
