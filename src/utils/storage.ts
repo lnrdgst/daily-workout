@@ -25,15 +25,26 @@ const createSetLog = (): ExerciseSetLog => ({
   completed: false,
 });
 
-const createExerciseState = (exercise: Exercise): ExerciseSessionState => ({
-  exerciseId: exercise.id,
-  sets: Array.from({ length: exercise.sets }, createSetLog),
+const normalizeSetValue = (value: unknown): string => (typeof value === 'string' ? value : '');
+
+const hasRecordedSetData = (set: ExerciseSetLog): boolean =>
+  normalizeSetValue(set.load).trim() !== '' || normalizeSetValue(set.reps).trim() !== '';
+
+const cloneSetLog = (set?: ExerciseSetLog): ExerciseSetLog => ({
+  load: normalizeSetValue(set?.load),
+  reps: normalizeSetValue(set?.reps),
+  completed: false,
 });
 
-export const createWorkoutDraft = (workout: Workout): WorkoutSessionDraft => ({
+const createExerciseState = (exercise: Exercise, previousSets: ExerciseSetLog[] | null = null): ExerciseSessionState => ({
+  exerciseId: exercise.id,
+  sets: Array.from({ length: exercise.sets }, (_, index) => cloneSetLog(previousSets?.[index])),
+});
+
+export const createWorkoutDraft = (workout: Workout, history: WorkoutSessionHistory[] = []): WorkoutSessionDraft => ({
   workoutId: workout.id,
   startedAt: new Date().toISOString(),
-  exercises: workout.exercises.map(createExerciseState),
+  exercises: workout.exercises.map((exercise) => createExerciseState(exercise, getPreviousExercisePerformance(history, exercise.id))),
 });
 
 const defaultState: WorkoutAppState = {
@@ -125,7 +136,7 @@ export const getPreviousExercisePerformance = (
 ): ExerciseSetLog[] | null => {
   for (const session of [...history].reverse()) {
     const match = session.exercises.find((exercise) => exercise.exerciseId === exerciseId);
-    if (match) {
+    if (match && match.sets.some(hasRecordedSetData)) {
       return match.sets;
     }
   }

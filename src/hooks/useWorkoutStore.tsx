@@ -84,7 +84,7 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
       startWorkout: (workoutId) => {
         setState((current) => {
           const isResumingDraft = current.activeDraft?.workoutId === workoutId;
-          const activeDraft = isResumingDraft ? current.activeDraft : createWorkoutDraft(workoutsById[workoutId]);
+          const activeDraft = isResumingDraft ? current.activeDraft : createWorkoutDraft(workoutsById[workoutId], current.history);
 
           return {
             ...current,
