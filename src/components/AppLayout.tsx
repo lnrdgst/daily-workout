@@ -6,7 +6,9 @@ import { MainNavigation } from '@/components/MainNavigation';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { SplashScreen } from '@/components/SplashScreen';
 import { useStaleWorkoutDetection } from '@/hooks/useStaleWorkoutDetection';
+import { useScreenWakeLock } from '@/hooks/useScreenWakeLock';
 import { useVisualViewportKeyboardOffset } from '@/hooks/useVisualViewportKeyboardOffset';
+import { useWorkoutSessionSettings, WorkoutSessionSettingsProvider } from '@/hooks/useWorkoutSessionSettings';
 import { useWorkoutStore, WorkoutStoreProvider } from '@/hooks/useWorkoutStore';
 
 const SPLASH_STORAGE_KEY = 'daily-workout-splash-seen';
@@ -14,7 +16,9 @@ const SPLASH_STORAGE_KEY = 'daily-workout-splash-seen';
 export const AppLayout = () => {
   return (
     <WorkoutStoreProvider>
-      <AppShell />
+      <WorkoutSessionSettingsProvider>
+        <AppShell />
+      </WorkoutSessionSettingsProvider>
     </WorkoutStoreProvider>
   );
 };
@@ -22,6 +26,8 @@ export const AppLayout = () => {
 const AppShell = () => {
   const location = useLocation();
   const { state, finishWorkout, discardDraft } = useWorkoutStore();
+  const [workoutSessionSettings] = useWorkoutSessionSettings();
+  useScreenWakeLock(Boolean(state.activeDraft) && workoutSessionSettings.keepScreenAwake);
   const { prompt: staleWorkoutPrompt, dismissPrompt } = useStaleWorkoutDetection(state.activeDraft);
   const keyboardOffset = useVisualViewportKeyboardOffset();
   const showActiveWorkoutBar = Boolean(state.activeDraft) && !location.pathname.startsWith('/workout/');

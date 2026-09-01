@@ -4,19 +4,22 @@ import { useRestAlertSettings } from '@/hooks/useRestAlertSettings';
 import { useRestTimerSettings } from '@/hooks/useRestTimerSettings';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
+import { useWorkoutSessionSettings } from '@/hooks/useWorkoutSessionSettings';
 import { getLastWorkout } from '@/utils/storage';
 import type { RestAlertSettings, RestAlertVolume } from '@/utils/restAlertSettings';
 import type { RestDurationSeconds } from '@/utils/restTimerSettings';
+import type { WorkoutSessionSettings } from '@/utils/workoutSessionSettings';
 import { formatWorkoutTimeRange } from '@/utils/workoutTiming';
 
 interface AlertToggleProps {
   label: string;
+  description?: string;
   enabled: boolean;
   disabled?: boolean;
   onClick: () => void;
 }
 
-const AlertToggle = ({ label, enabled, disabled = false, onClick }: AlertToggleProps) => (
+const AlertToggle = ({ label, description, enabled, disabled = false, onClick }: AlertToggleProps) => (
   <button
     type="button"
     role="switch"
@@ -28,7 +31,10 @@ const AlertToggle = ({ label, enabled, disabled = false, onClick }: AlertToggleP
       enabled ? 'bg-accent-500/10 text-zinc-100' : 'bg-white/5 text-zinc-300'
     }`}
   >
-    <span className="text-sm font-medium">{label}</span>
+    <span>
+      <span className="block text-sm font-medium">{label}</span>
+      {description && <span className="mt-1 block text-xs font-normal text-zinc-400">{description}</span>}
+    </span>
     <span className="flex items-center gap-2 text-xs text-zinc-400">
       {enabled ? 'Ligado' : 'Desligado'}
       <span className={`relative h-5 w-9 rounded-full transition ${enabled ? 'bg-accent-500' : 'bg-white/15'}`} aria-hidden="true">
@@ -50,6 +56,7 @@ export const SettingsPage = () => {
   const { state, clearHistory, discardDraft } = useWorkoutStore();
   const [alertSettings, setAlertSettings] = useRestAlertSettings();
   const [restTimerSettings, setRestTimerSettings] = useRestTimerSettings();
+  const [workoutSessionSettings, setWorkoutSessionSettings] = useWorkoutSessionSettings();
   const [userPreferences, saveUserPreferences] = useUserPreferences();
   const [displayName, setDisplayName] = useState(() => userPreferences.displayName);
   const [isDisplayNameSaved, setIsDisplayNameSaved] = useState(false);
@@ -107,6 +114,10 @@ export const SettingsPage = () => {
 
   const setDefaultRestSeconds = (defaultRestSeconds: RestDurationSeconds) => {
     setRestTimerSettings({ defaultRestSeconds });
+  };
+
+  const toggleWorkoutSessionSetting = (setting: keyof WorkoutSessionSettings) => {
+    setWorkoutSessionSettings((current) => ({ ...current, [setting]: !current[setting] }));
   };
 
   const clearDisplayNameFeedback = () => {
@@ -258,6 +269,24 @@ export const SettingsPage = () => {
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="panel space-y-2 p-5">
+        <div className="mb-3">
+          <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Durante o treino</p>
+        </div>
+        <AlertToggle
+          label="Manter tela ligada"
+          description="Evita que a tela desligue automaticamente durante o treino."
+          enabled={workoutSessionSettings.keepScreenAwake}
+          onClick={() => toggleWorkoutSessionSetting('keepScreenAwake')}
+        />
+        <AlertToggle
+          label="Iniciar descanso automaticamente"
+          description="Inicia o cronometro ao marcar uma serie como feita."
+          enabled={workoutSessionSettings.autoStartRestTimer}
+          onClick={() => toggleWorkoutSessionSetting('autoStartRestTimer')}
+        />
       </section>
 
       <section className="panel space-y-4 p-5">

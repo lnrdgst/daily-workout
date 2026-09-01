@@ -7,6 +7,7 @@ import { MainNavigation } from '@/components/MainNavigation';
 import { RestTimer } from '@/components/RestTimer';
 import { workoutsById } from '@/data/workouts';
 import { useRestTimerSettings } from '@/hooks/useRestTimerSettings';
+import { useWorkoutSessionSettings } from '@/hooks/useWorkoutSessionSettings';
 import { getWorkoutDurationSeconds, useWorkoutDuration } from '@/hooks/useWorkoutDuration';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
 import type { WorkoutProgressSummary } from '@/utils/workoutProgress';
@@ -50,6 +51,7 @@ export const WorkoutPage = () => {
     getPreviousExerciseSets,
   } = useWorkoutStore();
   const [restTimerSettings] = useRestTimerSettings();
+  const [workoutSessionSettings] = useWorkoutSessionSettings();
   const [isFinishDialogOpen, setIsFinishDialogOpen] = useState(false);
   const [isAccidentalFinishDialogOpen, setIsAccidentalFinishDialogOpen] = useState(false);
 
@@ -82,7 +84,9 @@ export const WorkoutPage = () => {
       return;
     }
 
-    startRestTimer(restTimerSettings.defaultRestSeconds);
+    if (workoutSessionSettings.autoStartRestTimer) {
+      startRestTimer(restTimerSettings.defaultRestSeconds);
+    }
   };
 
   if (!workoutId || !workout) {
