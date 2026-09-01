@@ -250,26 +250,28 @@ export const SettingsPage = () => {
         {notificationStatusMessage && <p className="px-1 pt-1 text-xs text-zinc-400">{notificationStatusMessage}</p>}
       </section>
 
-      <section className="panel space-y-3 p-5">
-        <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Descanso</p>
-          <p className="mt-2 text-sm text-zinc-400">Defina o tempo padrão do crônometro usado ao concluir uma série durante o treino.</p>
-        </div>
-        <div className="grid grid-cols-3 gap-2" role="group" aria-label="Tempo padrão de descanso">
-          {restDurationOptions.map((seconds) => (
-            <button
-              key={seconds}
-              type="button"
-              onClick={() => setDefaultRestSeconds(seconds)}
-              className={`min-h-11 rounded-xl px-2 text-sm font-medium transition ${
-                restTimerSettings.defaultRestSeconds === seconds ? 'bg-accent-500 text-white' : 'bg-white/5 text-zinc-300'
-              }`}
-            >
-              {seconds}s
-            </button>
-          ))}
-        </div>
-      </section>
+      {workoutSessionSettings.autoStartRestTimer && (
+        <section className="panel space-y-3 p-5">
+          <div>
+            <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Descanso</p>
+            <p className="mt-2 text-sm text-zinc-400">Defina o tempo padrão do crônometro usado ao concluir uma série durante o treino.</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2" role="group" aria-label="Tempo padrão de descanso">
+            {restDurationOptions.map((seconds) => (
+              <button
+                key={seconds}
+                type="button"
+                onClick={() => setDefaultRestSeconds(seconds)}
+                className={`min-h-11 rounded-xl px-2 text-sm font-medium transition ${
+                  restTimerSettings.defaultRestSeconds === seconds ? 'bg-accent-500 text-white' : 'bg-white/5 text-zinc-300'
+                }`}
+              >
+                {seconds}s
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="panel space-y-2 p-5">
         <div className="mb-3">
