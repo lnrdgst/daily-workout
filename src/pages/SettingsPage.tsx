@@ -250,6 +250,24 @@ export const SettingsPage = () => {
         {notificationStatusMessage && <p className="px-1 pt-1 text-xs text-zinc-400">{notificationStatusMessage}</p>}
       </section>
 
+      <section className="panel space-y-2 p-5">
+        <div className="mb-3">
+          <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Durante o treino</p>
+        </div>
+        <AlertToggle
+          label="Manter tela ligada"
+          description="Evita que a tela desligue automaticamente durante o treino."
+          enabled={workoutSessionSettings.keepScreenAwake}
+          onClick={() => toggleWorkoutSessionSetting('keepScreenAwake')}
+        />
+        <AlertToggle
+          label="Iniciar descanso automaticamente"
+          description="Inicia o cronometro ao marcar uma serie como feita."
+          enabled={workoutSessionSettings.autoStartRestTimer}
+          onClick={() => toggleWorkoutSessionSetting('autoStartRestTimer')}
+        />
+      </section>
+
       {workoutSessionSettings.autoStartRestTimer && (
         <section className="panel space-y-3 p-5">
           <div>
@@ -272,24 +290,6 @@ export const SettingsPage = () => {
           </div>
         </section>
       )}
-
-      <section className="panel space-y-2 p-5">
-        <div className="mb-3">
-          <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Durante o treino</p>
-        </div>
-        <AlertToggle
-          label="Manter tela ligada"
-          description="Evita que a tela desligue automaticamente durante o treino."
-          enabled={workoutSessionSettings.keepScreenAwake}
-          onClick={() => toggleWorkoutSessionSetting('keepScreenAwake')}
-        />
-        <AlertToggle
-          label="Iniciar descanso automaticamente"
-          description="Inicia o cronometro ao marcar uma serie como feita."
-          enabled={workoutSessionSettings.autoStartRestTimer}
-          onClick={() => toggleWorkoutSessionSetting('autoStartRestTimer')}
-        />
-      </section>
 
       <section className="panel space-y-4 p-5">
         <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Histórico local</p>
