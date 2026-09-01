@@ -60,7 +60,6 @@ export const WorkoutPage = () => {
   const activeDraft = state.activeDraft?.workoutId === workoutId ? state.activeDraft : null;
   const duration = useWorkoutDuration(activeDraft?.startedAt);
   const progress = activeDraft ? getWorkoutProgress(activeDraft) : null;
-  const hasIncompleteSets = activeDraft?.exercises.some((exercise) => exercise.sets.some((set) => !set.completed)) ?? false;
   const hasCompletedSet = activeDraft?.exercises.some((exercise) => exercise.sets.some((set) => set.completed)) ?? false;
 
   const handleFinishRequest = () => {
@@ -208,9 +207,9 @@ export const WorkoutPage = () => {
         open={isFinishDialogOpen}
         title="Finalizar treino?"
         description={
-          hasIncompleteSets
-            ? 'Existem séries não marcadas como concluídas. Deseja finalizar o treino mesmo assim?'
-            : 'Confira se todas as séries e exercícios realizados foram registrados antes de finalizar.'
+          progress?.percentage === 100
+            ? 'Bom trabalho. Confirma a finalização deste treino?'
+            : 'Ainda existem exercícios ou séries não concluídos. Deseja finalizar o treino mesmo assim?'
         }
         cancelLabel="Voltar ao treino"
         confirmLabel="Finalizar treino"
