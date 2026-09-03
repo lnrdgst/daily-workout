@@ -81,20 +81,20 @@ const HistorySessionCard = ({ session, isExpanded, onToggle, onDelete }: History
 
   return (
     <article className="panel p-4">
-      <div className="flex items-start gap-2">
+      <div className="flex flex-wrap items-start gap-2">
         <button
           type="button"
           onClick={onToggle}
           aria-expanded={isExpanded}
           aria-controls={detailsId}
-          className="flex min-w-0 flex-1 items-start justify-between gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/70"
+          className="flex min-w-0 basis-48 flex-1 shrink-0 items-start justify-between gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/70"
         >
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-[0.24em] text-accent-300">{session.workoutName}</p>
             <h3 className="mt-1 text-lg font-bold">{new Date(session.finishedAt).toLocaleDateString('pt-BR')}</h3>
             {timing ? (
               <div className="mt-1 text-xs text-zinc-500">
-                <p>{timeRange}</p>
+                <p className="whitespace-nowrap">{timeRange}</p>
                 {duration && <p className="mt-0.5 whitespace-nowrap text-zinc-600">{duration}</p>}
               </div>
             ) : (
