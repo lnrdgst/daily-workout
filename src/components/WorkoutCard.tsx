@@ -40,7 +40,7 @@ export const WorkoutCard = ({ workout, lastSession, completedSessionCount }: Wor
       </div>
 
       <Link to={`/workout/${workout.id}`} className="touch-button w-full bg-accent-500 text-base font-semibold text-white">
-        Visualizar treino
+        Ver ficha de treino
       </Link>
     </article>
   );
