@@ -30,15 +30,15 @@ const normalizeSetValue = (value: unknown): string => (typeof value === 'string'
 const hasRecordedSetData = (set: ExerciseSetLog): boolean =>
   normalizeSetValue(set.load).trim() !== '' || normalizeSetValue(set.reps).trim() !== '';
 
-const cloneSetLog = (set?: ExerciseSetLog): ExerciseSetLog => ({
+const cloneSetLog = (prescribedMinimumReps: number, set?: ExerciseSetLog): ExerciseSetLog => ({
   load: normalizeSetValue(set?.load),
-  reps: normalizeSetValue(set?.reps),
+  reps: set ? normalizeSetValue(set.reps) : String(prescribedMinimumReps),
   completed: false,
 });
 
 const createExerciseState = (exercise: Exercise, previousSets: ExerciseSetLog[] | null = null): ExerciseSessionState => ({
   exerciseId: exercise.id,
-  sets: Array.from({ length: exercise.sets }, (_, index) => cloneSetLog(previousSets?.[index])),
+  sets: Array.from({ length: exercise.sets }, (_, index) => cloneSetLog(exercise.repsMin, previousSets?.[index])),
 });
 
 export const createWorkoutDraft = (workout: Workout, history: WorkoutSessionHistory[] = []): WorkoutSessionDraft => ({
