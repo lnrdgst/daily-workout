@@ -1,7 +1,9 @@
+import { Check } from 'lucide-react';
 import { workouts, workoutsById } from '@/data/workouts';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
 import { getLastWorkout } from '@/utils/storage';
+import { isSameLocalDay } from '@/utils/localDate';
 import { getWorkoutSequenceProgress } from '@/utils/workoutSequence';
 import { WorkoutCard } from '@/components/WorkoutCard';
 import { WorkoutProgress } from '@/components/WorkoutProgress';
@@ -12,21 +14,29 @@ export const HomePage = () => {
   const lastWorkout = getLastWorkout(state.history, state.lastCompletedWorkoutId);
   const sequenceProgress = getWorkoutSequenceProgress(state.history);
   const sequenceSteps = ['A', 'B', 'C'] as const;
-  const hour = new Date().getHours();
+  const now = new Date();
+  const trainedToday = state.history.some((session) => isSameLocalDay(new Date(session.finishedAt), now));
+  const lastWorkoutWasToday = lastWorkout ? isSameLocalDay(new Date(lastWorkout.finishedAt), now) : false;
+  const hour = now.getHours();
   const greeting = hour >= 5 && hour < 12 ? 'Bom dia' : hour >= 12 && hour < 18 ? 'Boa tarde' : 'Boa noite';
   const displayName = userPreferences.displayName.trim();
   const greetingLabel = displayName ? `${greeting}, ${displayName}` : greeting;
   const welcomeTitle = state.activeDraft
     ? `Seu ${workoutsById[state.activeDraft.workoutId].name} está em andamento.`
-    : 'Pronto para o próximo treino?';
+    : trainedToday
+      ? 'Treino de hoje concluído.'
+      : 'Pronto para o próximo treino?';
+  const welcomeDescription = !state.activeDraft && trainedToday
+    ? 'Se quiser treinar novamente, seus próximos treinos continuam disponíveis abaixo.'
+    : 'Registre suas cargas, repetições e acompanhe sua evolução a cada sessão.';
 
   return (
     <div className="space-y-5">
       <section className="panel overflow-hidden p-5">
-        <p className="text-xs uppercase tracking-[0.3em] text-accent-300/80">{greetingLabel}</p>
+        <p className="break-words text-xs uppercase tracking-[0.3em] text-accent-300/80">{greetingLabel}</p>
         <h2 className="mt-2 text-3xl font-bold leading-tight">{welcomeTitle}</h2>
         <p className="mt-3 text-sm text-zinc-400">
-          Registre suas cargas, repetições e acompanhe sua evolução a cada sessão.
+          {welcomeDescription}
         </p>
       </section>
 
@@ -55,28 +65,32 @@ export const HomePage = () => {
           
 
       {!state.activeDraft && (
-        <section className="panel p-5">
+        <section className={`panel p-5 ${lastWorkout ? 'border-l-2 border-l-accent-500/70' : ''}`}>
           <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Último treino concluído</p>
-        {lastWorkout ? (
-          <div className="mt-2 flex items-center justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-bold">{lastWorkout.workoutName}</h3>
+          {lastWorkout ? (
+            <div className="mt-2">
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                <h3 className="min-w-0 break-words text-lg font-bold">{lastWorkout.workoutName}</h3>
+                <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-accent-300">
+                  <Check size={14} aria-hidden="true" />
+                  Concluído
+                </span>
+              </div>
               <p className="text-sm text-zinc-400">
-                {new Date(lastWorkout.finishedAt).toLocaleDateString('pt-BR')} {' '}
-                das{' '} {new Date(lastWorkout.startedAt).toLocaleTimeString('pt-BR', {
+                {lastWorkoutWasToday ? 'Hoje ·' : `${new Date(lastWorkout.finishedAt).toLocaleDateString('pt-BR')} das`}{' '}
+                {new Date(lastWorkout.startedAt).toLocaleTimeString('pt-BR', {
                   hour: '2-digit',
                   minute: '2-digit',
-                })} {' '}
-                às{' '} {new Date(lastWorkout.finishedAt).toLocaleTimeString('pt-BR', {
+                })}{' '}
+                às{' '}{new Date(lastWorkout.finishedAt).toLocaleTimeString('pt-BR', {
                   hour: '2-digit',
                   minute: '2-digit',
                 })}
               </p>
             </div>
-          </div>
-        ) : (
-          <p className="mt-2 text-sm text-zinc-400">Você ainda não concluiu nenhum treino.</p>
-        )}
+          ) : (
+            <p className="mt-2 text-sm text-zinc-400">Você ainda não concluiu nenhum treino.</p>
+          )}
         </section>
       )}
 
