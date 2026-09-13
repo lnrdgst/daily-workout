@@ -1,8 +1,10 @@
 import { Check } from 'lucide-react';
-import { workouts, workoutsById } from '@/data/workouts';
+import { Link } from 'react-router-dom';
+import { workouts } from '@/data/workouts';
+import { cardioModalities } from '@/data/cardio';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
-import { getLastWorkout } from '@/utils/storage';
+import { getLatestSession, getSessionName, isStrengthHistory } from '@/utils/sessions';
 import { isSameLocalDay } from '@/utils/localDate';
 import { getWorkoutSequenceProgress } from '@/utils/workoutSequence';
 import { WorkoutCard } from '@/components/WorkoutCard';
@@ -11,7 +13,8 @@ import { WorkoutProgress } from '@/components/WorkoutProgress';
 export const HomePage = () => {
   const { state } = useWorkoutStore();
   const [userPreferences] = useUserPreferences();
-  const lastWorkout = getLastWorkout(state.history, state.lastCompletedWorkoutId);
+  const lastWorkout = getLatestSession(state.history);
+  const strengthHistory = state.history.filter(isStrengthHistory);
   const sequenceProgress = getWorkoutSequenceProgress(state.history);
   const sequenceSteps = ['A', 'B', 'C'] as const;
   const now = new Date();
@@ -22,7 +25,9 @@ export const HomePage = () => {
   const displayName = userPreferences.displayName.trim();
   const greetingLabel = displayName ? `${greeting}, ${displayName}` : greeting;
   const welcomeTitle = state.activeDraft
-    ? `Seu ${workoutsById[state.activeDraft.workoutId].name} está em andamento.`
+    ? state.activeDraft.type === 'cardio'
+      ? `${getSessionName(state.activeDraft)} em andamento.`
+      : `Seu ${getSessionName(state.activeDraft)} está em andamento.`
     : trainedToday
       ? 'Treino de hoje concluído.'
       : 'Pronto para o próximo treino?';
@@ -94,14 +99,25 @@ export const HomePage = () => {
         </section>
       )}
 
-      {state.activeDraft && <WorkoutProgress draft={state.activeDraft} />}
+      {state.activeDraft && state.activeDraft.type !== 'cardio' && <WorkoutProgress draft={state.activeDraft} />}
+      <section className="panel p-5">
+        <p className="text-xs uppercase tracking-[0.24em] text-accent-300">Aeróbico</p>
+        <h2 className="mt-1 text-xl font-bold">Escolha sua atividade</h2>
+        <div className="mt-4 grid gap-2">
+          {Object.entries(cardioModalities).map(([modality, name]) => (
+            <Link key={modality} to={`/cardio/${modality}`} className="touch-button justify-start bg-white/5 text-zinc-100">
+              {name}
+            </Link>
+          ))}
+        </div>
+      </section>
       <section className="space-y-4">
         {workouts.map((workout) => (
           <WorkoutCard
             key={workout.id}
             workout={workout}
-            lastSession={[...state.history].reverse().find((session) => session.workoutId === workout.id) ?? null}
-            completedSessionCount={state.history.filter((session) => session.workoutId === workout.id).length}
+            lastSession={[...strengthHistory].reverse().find((session) => session.workoutId === workout.id) ?? null}
+            completedSessionCount={strengthHistory.filter((session) => session.workoutId === workout.id).length}
           />
         ))}
       </section>

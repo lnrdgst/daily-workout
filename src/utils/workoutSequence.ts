@@ -1,4 +1,5 @@
-import type { WorkoutId, WorkoutSessionHistory } from '@/types/workout';
+import type { WorkoutId, SessionHistory } from '@/types/workout';
+import { isStrengthHistory } from '@/utils/sessions';
 
 const sequence: WorkoutId[] = ['A', 'B', 'C'];
 
@@ -7,8 +8,8 @@ export interface WorkoutSequenceProgress {
   currentStep: 0 | 1 | 2;
 }
 
-export const getWorkoutSequenceProgress = (history: WorkoutSessionHistory[]): WorkoutSequenceProgress => {
-  const orderedHistory = [...history].sort((first, second) => new Date(first.finishedAt).getTime() - new Date(second.finishedAt).getTime());
+export const getWorkoutSequenceProgress = (history: SessionHistory[]): WorkoutSequenceProgress => {
+  const orderedHistory = history.filter(isStrengthHistory).sort((first, second) => new Date(first.finishedAt).getTime() - new Date(second.finishedAt).getTime());
   let completedSequences = 0;
   let currentStep: 0 | 1 | 2 = 0;
 

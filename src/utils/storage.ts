@@ -1,4 +1,5 @@
 import { workoutsById } from '@/data/workouts';
+import { isStrengthHistory } from '@/utils/sessions';
 import type {
   Exercise,
   ExerciseSessionState,
@@ -9,6 +10,7 @@ import type {
   RestTimerSessionState,
   WorkoutSessionDraft,
   WorkoutSessionHistory,
+  SessionHistory,
 } from '@/types/workout';
 
 const STORAGE_KEY = 'daily-workout-state';
@@ -41,7 +43,8 @@ const createExerciseState = (exercise: Exercise, previousSets: ExerciseSetLog[] 
   sets: Array.from({ length: exercise.sets }, (_, index) => cloneSetLog(exercise.repsMin, previousSets?.[index])),
 });
 
-export const createWorkoutDraft = (workout: Workout, history: WorkoutSessionHistory[] = []): WorkoutSessionDraft => ({
+export const createWorkoutDraft = (workout: Workout, history: SessionHistory[] = []): WorkoutSessionDraft => ({
+  type: 'strength',
   workoutId: workout.id,
   startedAt: new Date().toISOString(),
   exercises: workout.exercises.map((exercise) => createExerciseState(exercise, getPreviousExercisePerformance(history, exercise.id))),
@@ -94,7 +97,7 @@ export const loadAppState = (): WorkoutAppState => {
     return {
       ...defaultState,
       ...parsed,
-      restTimer: parsed.activeDraft ? loadRestTimerState(parsed.restTimer) : defaultRestTimerState,
+      restTimer: parsed.activeDraft && parsed.activeDraft.type !== 'cardio' ? loadRestTimerState(parsed.restTimer) : defaultRestTimerState,
     };
   } catch {
     return defaultState;
@@ -113,6 +116,7 @@ export const buildHistoryEntry = (draft: WorkoutSessionDraft): WorkoutSessionHis
   const workout = workoutsById[draft.workoutId];
 
   return {
+    type: 'strength',
     id: `${draft.workoutId}-${Date.now()}`,
     workoutId: draft.workoutId,
     workoutName: workout.name,
@@ -131,10 +135,11 @@ export const buildHistoryEntry = (draft: WorkoutSessionDraft): WorkoutSessionHis
 };
 
 export const getPreviousExercisePerformance = (
-  history: WorkoutSessionHistory[],
+  history: SessionHistory[],
   exerciseId: string,
 ): ExerciseSetLog[] | null => {
   for (const session of [...history].reverse()) {
+    if (!isStrengthHistory(session)) continue;
     const match = session.exercises.find((exercise) => exercise.exerciseId === exerciseId);
     if (match && match.sets.some(hasRecordedSetData)) {
       return match.sets;
@@ -144,10 +149,10 @@ export const getPreviousExercisePerformance = (
   return null;
 };
 
-export const getLastWorkout = (history: WorkoutSessionHistory[], id: WorkoutId | null): WorkoutSessionHistory | null => {
+export const getLastWorkout = (history: SessionHistory[], id: WorkoutId | null): WorkoutSessionHistory | null => {
   if (!id) {
     return null;
   }
 
-  return [...history].reverse().find((session) => session.workoutId === id) ?? null;
+  return [...history].reverse().filter(isStrengthHistory).find((session) => session.workoutId === id) ?? null;
 };

@@ -10,6 +10,7 @@ import { useScreenWakeLock } from '@/hooks/useScreenWakeLock';
 import { useVisualViewportKeyboardOffset } from '@/hooks/useVisualViewportKeyboardOffset';
 import { useWorkoutSessionSettings, WorkoutSessionSettingsProvider } from '@/hooks/useWorkoutSessionSettings';
 import { useWorkoutStore, WorkoutStoreProvider } from '@/hooks/useWorkoutStore';
+import { getSessionPath } from '@/utils/sessions';
 
 const SPLASH_STORAGE_KEY = 'daily-workout-splash-seen';
 
@@ -28,10 +29,10 @@ const AppShell = () => {
   const { state, finishWorkout, discardDraft } = useWorkoutStore();
   const [workoutSessionSettings] = useWorkoutSessionSettings();
   useScreenWakeLock(Boolean(state.activeDraft) && workoutSessionSettings.keepScreenAwake);
-  const { prompt: staleWorkoutPrompt, dismissPrompt } = useStaleWorkoutDetection(state.activeDraft);
+  const { prompt: staleWorkoutPrompt, dismissPrompt } = useStaleWorkoutDetection(state.activeDraft?.type === 'cardio' ? null : state.activeDraft);
   const keyboardOffset = useVisualViewportKeyboardOffset();
-  const showActiveWorkoutBar = Boolean(state.activeDraft) && !location.pathname.startsWith('/workout/');
-  const isActiveWorkoutPage = location.pathname === `/workout/${state.activeDraft?.workoutId}`;
+  const isActiveWorkoutPage = state.activeDraft !== null && location.pathname === getSessionPath(state.activeDraft);
+  const showActiveWorkoutBar = Boolean(state.activeDraft) && !isActiveWorkoutPage;
   const [showSplash, setShowSplash] = useState(() => {
     if (state.activeDraft || typeof window === 'undefined') {
       return false;

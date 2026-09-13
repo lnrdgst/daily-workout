@@ -44,6 +44,7 @@ export interface ExerciseSessionState {
 }
 
 export interface WorkoutSessionDraft {
+  type?: 'strength';
   workoutId: WorkoutId;
   startedAt: string;
   exercises: ExerciseSessionState[];
@@ -58,6 +59,7 @@ export interface RestTimerSessionState {
 }
 
 export interface WorkoutSessionHistory {
+  type?: 'strength';
   id: string;
   workoutId: WorkoutId;
   workoutName: string;
@@ -71,10 +73,47 @@ export interface WorkoutSessionHistory {
   }>;
 }
 
+export type CardioModality = 'stationary-bike' | 'spinning' | 'running' | 'walking' | 'outdoor-bike';
+
+export interface CardioData {
+  distanceKm?: number;
+  averageSpeedKmH?: number;
+  resistance?: number;
+  notes?: string;
+}
+
+export interface CardioIntervals {
+  targetCount: number;
+  durationSeconds: number;
+  completedCount: number;
+}
+
+export interface CardioSessionDraft extends CardioData {
+  type: 'cardio';
+  modality: CardioModality;
+  startedAt: string;
+  intervals?: CardioIntervals;
+  intervalEndAt: number | null;
+}
+
+export interface CardioSessionHistory extends CardioData {
+  type: 'cardio';
+  id: string;
+  modality: CardioModality;
+  workoutName: string;
+  startedAt: string;
+  finishedAt: string;
+  intervals?: CardioIntervals;
+}
+
+// Missing type is the legacy strength format; no persisted migration is needed.
+export type ActiveSession = WorkoutSessionDraft | CardioSessionDraft;
+export type SessionHistory = WorkoutSessionHistory | CardioSessionHistory;
+
 export interface WorkoutAppState {
   lastCompletedWorkoutId: WorkoutId | null;
   lastOpenedWorkoutId: WorkoutId | null;
-  activeDraft: WorkoutSessionDraft | null;
+  activeDraft: ActiveSession | null;
   restTimer: RestTimerSessionState;
-  history: WorkoutSessionHistory[];
+  history: SessionHistory[];
 }

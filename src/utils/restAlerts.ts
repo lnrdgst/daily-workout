@@ -83,19 +83,30 @@ export const vibrateRestFinished = () => {
   }
 };
 
-export const showRestFinishedNotification = () => {
+const showTimerFinishedNotification = (title: string, body: string, tag: string) => {
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
     return;
   }
 
   try {
-    new Notification('Descanso concluído', {
-      body: 'Hora da próxima série.',
+    new Notification(title, {
+      body,
       icon: '/icon-192.svg',
-      tag: 'daily-workout-rest-finished',
+      tag,
     });
   } catch {
     // Notifications can be unavailable even when permission was granted.
+  }
+};
+
+export const showRestFinishedNotification = () =>
+  showTimerFinishedNotification('Descanso concluído', 'Hora da próxima série.', 'daily-workout-rest-finished');
+
+export const triggerIntervalFinishedAlerts = (settings: RestAlertSettings) => {
+  if (settings.sound) playRestFinishedSound(settings.volume);
+  if (settings.vibration) vibrateRestFinished();
+  if (settings.notifications) {
+    showTimerFinishedNotification('Tiro concluído', 'Tiro registrado. Inicie o próximo quando quiser.', 'daily-workout-interval-finished');
   }
 };
 

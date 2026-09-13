@@ -10,13 +10,22 @@ import {
   loadAppState,
   saveAppState,
 } from '@/utils/storage';
-import { primeRestAlertSound, triggerRestFinishedAlerts } from '@/utils/restAlerts';
+import { primeRestAlertSound, triggerRestFinishedAlerts, triggerIntervalFinishedAlerts } from '@/utils/restAlerts';
+import { buildCardioHistoryEntry, configureIntervals, createCardioDraft, markInterval, settleInterval, startInterval, undoInterval } from '@/utils/cardioSession';
+import { isStrengthHistory } from '@/utils/sessions';
 import { loadRestAlertSettings } from '@/utils/restAlertSettings';
-import type { ExerciseSetLog, RestTimerSessionState, WorkoutAppState, WorkoutId, WorkoutSessionHistory } from '@/types/workout';
+import type { CardioData, CardioModality, CardioSessionDraft, ExerciseSetLog, RestTimerSessionState, WorkoutAppState, WorkoutId, WorkoutSessionHistory } from '@/types/workout';
 
 interface WorkoutStoreValue {
   state: WorkoutAppState;
   startWorkout: (workoutId: WorkoutId) => void;
+  startCardio: (modality: CardioModality) => void;
+  updateCardio: (patch: Partial<CardioData>) => void;
+  configureCardioIntervals: (targetCount: number, durationSeconds: number) => void;
+  startCardioInterval: () => void;
+  markCardioInterval: () => void;
+  undoCardioInterval: () => void;
+  cancelCardioInterval: () => void;
   updateSet: (exerciseId: string, setIndex: number, patch: Partial<ExerciseSetLog>) => void;
   toggleSetCompleted: (exerciseId: string, setIndex: number) => void;
   startRestTimer: (seconds: RestTimerSessionState['selectedSeconds']) => void;
@@ -35,10 +44,45 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
   const [state, setState] = useLocalStorageState(loadAppState, saveAppState);
   const stateRef = useRef(state);
   const completedEndAtRef = useRef<number | null>(null);
+  const completedIntervalRef = useRef<string | null>(null);
 
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+
+  // The provider survives route changes. Persist completion before alerting so
+  // refresh/focus/visibility events cannot count or alert the same interval twice.
+  useEffect(() => {
+    const draft = state.activeDraft;
+    if (draft?.type !== 'cardio' || draft.intervalEndAt === null) return;
+    const checkInterval = () => {
+      const current = stateRef.current;
+      if (current.activeDraft?.type !== 'cardio') return;
+      const activeDraft = settleInterval(current.activeDraft);
+      if (activeDraft === current.activeDraft) return;
+      const intervalKey = `${current.activeDraft.startedAt}-${current.activeDraft.intervalEndAt}`;
+      const next = { ...current, activeDraft };
+      saveAppState(next);
+      stateRef.current = next;
+      setState(next);
+      if (completedIntervalRef.current !== intervalKey) {
+        completedIntervalRef.current = intervalKey;
+        triggerIntervalFinishedAlerts(loadRestAlertSettings());
+      }
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') checkInterval();
+    };
+    checkInterval();
+    const timeout = window.setTimeout(checkInterval, Math.max(0, draft.intervalEndAt - Date.now()));
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', checkInterval);
+    return () => {
+      window.clearTimeout(timeout);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', checkInterval);
+    };
+  }, [setState, state.activeDraft]);
 
   useEffect(() => {
     const { restTimer } = state;
@@ -79,10 +123,42 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
   }, [setState, state]);
 
   const value = useMemo<WorkoutStoreValue>(() => {
+    const changeCardio = (update: (draft: CardioSessionDraft) => CardioSessionDraft) => {
+      const current = stateRef.current;
+      if (current.activeDraft?.type !== 'cardio') return;
+      const activeDraft = update(current.activeDraft);
+      if (activeDraft === current.activeDraft) return;
+      const next = { ...current, activeDraft };
+      saveAppState(next);
+      stateRef.current = next;
+      setState(next);
+    };
     return {
       state,
+      startCardio: (modality) => {
+        const current = stateRef.current;
+        if (current.activeDraft) return;
+        const next = { ...current, activeDraft: createCardioDraft(modality), restTimer: defaultRestTimerState };
+        saveAppState(next);
+        stateRef.current = next;
+        setState(next);
+      },
+      updateCardio: (patch) => changeCardio((draft) => ({ ...draft, ...patch })),
+      configureCardioIntervals: (targetCount, durationSeconds) => changeCardio((draft) => configureIntervals(draft, targetCount, durationSeconds)),
+      startCardioInterval: () => {
+        primeRestAlertSound();
+        changeCardio((draft) => {
+          const next = startInterval(draft);
+          if (next !== draft) completedIntervalRef.current = null;
+          return next;
+        });
+      },
+      markCardioInterval: () => changeCardio(markInterval),
+      undoCardioInterval: () => changeCardio(undoInterval),
+      cancelCardioInterval: () => changeCardio((draft) => ({ ...draft, intervalEndAt: null })),
       startWorkout: (workoutId) => {
         setState((current) => {
+          if (current.activeDraft?.type === 'cardio') return current;
           const isResumingDraft = current.activeDraft?.workoutId === workoutId;
           const activeDraft = isResumingDraft ? current.activeDraft : createWorkoutDraft(workoutsById[workoutId], current.history);
 
@@ -96,7 +172,7 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
       },
       updateSet: (exerciseId, setIndex, patch) => {
         setState((current) => {
-          if (!current.activeDraft) {
+          if (!current.activeDraft || current.activeDraft.type === 'cardio') {
             return current;
           }
 
@@ -125,7 +201,7 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
       },
       toggleSetCompleted: (exerciseId, setIndex) => {
         setState((current) => {
-          if (!current.activeDraft) {
+          if (!current.activeDraft || current.activeDraft.type === 'cardio') {
             return current;
           }
 
@@ -156,7 +232,7 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
         completedEndAtRef.current = null;
         primeRestAlertSound();
         setState((current) => {
-          if (!current.activeDraft) {
+          if (!current.activeDraft || current.activeDraft.type === 'cardio') {
             return current;
           }
 
@@ -198,58 +274,67 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
         });
       },
       finishWorkout: () => {
-        if (!state.activeDraft) {
+        const current = stateRef.current;
+        if (!current.activeDraft) {
           return;
         }
 
         completedEndAtRef.current = stateRef.current.restTimer.endAt;
-        const entry = buildHistoryEntry(state.activeDraft);
+        const entry = current.activeDraft.type === 'cardio'
+          ? buildCardioHistoryEntry(current.activeDraft) : buildHistoryEntry(current.activeDraft);
         const nextState: WorkoutAppState = {
-          ...state,
-          lastCompletedWorkoutId: state.activeDraft.workoutId,
+          ...current,
+          lastCompletedWorkoutId: current.activeDraft.type === 'cardio' ? current.lastCompletedWorkoutId : current.activeDraft.workoutId,
           activeDraft: null,
           restTimer: defaultRestTimerState,
-          history: [...state.history, entry],
+          history: [...current.history, entry],
         };
 
         // Persist the completed session before the route changes.
         saveAppState(nextState);
+        stateRef.current = nextState;
         setState(nextState);
       },
       discardDraft: () => {
         completedEndAtRef.current = stateRef.current.restTimer.endAt;
         const nextState: WorkoutAppState = {
-          ...state,
+          ...stateRef.current,
           activeDraft: null,
           restTimer: defaultRestTimerState,
         };
 
         saveAppState(nextState);
+        stateRef.current = nextState;
         setState(nextState);
       },
       clearHistory: () => {
         completedEndAtRef.current = stateRef.current.restTimer.endAt;
-        setState((current) => ({
-          ...current,
+        const nextState: WorkoutAppState = {
+          ...stateRef.current,
           activeDraft: null,
           restTimer: defaultRestTimerState,
           history: [],
           lastCompletedWorkoutId: null,
-        }));
+        };
+        saveAppState(nextState);
+        stateRef.current = nextState;
+        setState(nextState);
       },
       deleteHistoryEntry: (historyEntryId) => {
-        const history = state.history.filter((entry) => entry.id !== historyEntryId);
-        const latestEntry = history.reduce<WorkoutSessionHistory | null>(
+        const current = stateRef.current;
+        const history = current.history.filter((entry) => entry.id !== historyEntryId);
+        const latestEntry = history.filter(isStrengthHistory).reduce<WorkoutSessionHistory | null>(
           (latest, entry) => (!latest || entry.finishedAt > latest.finishedAt ? entry : latest),
           null,
         );
         const nextState: WorkoutAppState = {
-          ...state,
+          ...current,
           history,
           lastCompletedWorkoutId: latestEntry?.workoutId ?? null,
         };
 
         saveAppState(nextState);
+        stateRef.current = nextState;
         setState(nextState);
       },
       getPreviousExerciseSets: (exerciseId) => getPreviousExercisePerformance(state.history, exerciseId),

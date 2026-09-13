@@ -5,7 +5,7 @@ import { useRestTimerSettings } from '@/hooks/useRestTimerSettings';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
 import { useWorkoutSessionSettings } from '@/hooks/useWorkoutSessionSettings';
-import { getLastWorkout } from '@/utils/storage';
+import { getLatestSession } from '@/utils/sessions';
 import type { RestAlertSettings, RestAlertVolume } from '@/utils/restAlertSettings';
 import type { RestDurationSeconds } from '@/utils/restTimerSettings';
 import type { WorkoutSessionSettings } from '@/utils/workoutSessionSettings';
@@ -67,7 +67,7 @@ export const SettingsPage = () => {
   const displayNameSaveTimeoutRef = useRef<number | null>(null);
   const displayNameFeedbackTimeoutRef = useRef<number | null>(null);
   const isDisplayNameSavePendingRef = useRef(false);
-  const lastWorkout = getLastWorkout(state.history, state.lastCompletedWorkoutId);
+  const lastWorkout = getLatestSession(state.history);
   const timing = lastWorkout ? formatWorkoutTimeRange(lastWorkout.startedAt, lastWorkout.finishedAt) : null;
   const notificationSupported = typeof Notification !== 'undefined';
   const notificationBlocked = !notificationSupported || Notification.permission === 'denied';
@@ -295,7 +295,7 @@ export const SettingsPage = () => {
         <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Histórico local</p>
         <div className="rounded-2xl bg-white/5 p-4">
           <p className="text-sm text-zinc-400">Último treino concluído</p>
-          <p className="mt-1 text-lg font-semibold">{state.lastCompletedWorkoutId ? `Treino ${state.lastCompletedWorkoutId}` : 'Nenhum'}</p>
+          <p className="mt-1 text-lg font-semibold">{lastWorkout?.workoutName ?? 'Nenhum'}</p>
           {timing && <p className="mt-1 text-xs text-zinc-500">{timing}</p>}
         </div>
         <div className="rounded-2xl bg-white/5 p-4">

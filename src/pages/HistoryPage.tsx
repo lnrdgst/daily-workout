@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { CardioHistoryDetails } from '@/components/CardioHistoryDetails';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
-import type { WorkoutSessionHistory } from '@/types/workout';
+import type { SessionHistory } from '@/types/workout';
 import { formatWorkoutTimeRange } from '@/utils/workoutTiming';
 
 type HistoryMonthGroup = {
   key: string;
   year: number;
   month: number;
-  sessions: WorkoutSessionHistory[];
+  sessions: SessionHistory[];
 };
 
 type HistoryYearGroup = {
@@ -23,7 +24,7 @@ const formatMonthTitle = (year: number, month: number) =>
 const formatShortDate = (date: Date) =>
   new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(date);
 
-const getMonthSummary = (sessions: WorkoutSessionHistory[]) => {
+const getMonthSummary = (sessions: SessionHistory[]) => {
   const sessionCount = sessions.length;
   const latestDate = new Date(sessions[0].finishedAt);
   const earliestDate = new Date(sessions[sessions.length - 1].finishedAt);
@@ -31,7 +32,7 @@ const getMonthSummary = (sessions: WorkoutSessionHistory[]) => {
   return `${sessionCount} ${sessionCount === 1 ? 'treino' : 'treinos'} · ${formatShortDate(earliestDate)} a ${formatShortDate(latestDate)}`;
 };
 
-const groupHistoryByMonth = (history: WorkoutSessionHistory[]): HistoryYearGroup[] => {
+const groupHistoryByMonth = (history: SessionHistory[]): HistoryYearGroup[] => {
   const monthsByKey = new Map<string, HistoryMonthGroup>();
 
   [...history]
@@ -68,7 +69,7 @@ const groupHistoryByMonth = (history: WorkoutSessionHistory[]): HistoryYearGroup
 };
 
 type HistorySessionCardProps = {
-  session: WorkoutSessionHistory;
+  session: SessionHistory;
   isExpanded: boolean;
   onToggle: () => void;
   onDelete: () => void;
@@ -87,9 +88,9 @@ const HistorySessionCard = ({ session, isExpanded, onToggle, onDelete }: History
           onClick={onToggle}
           aria-expanded={isExpanded}
           aria-controls={detailsId}
-          className="flex min-w-0 basis-48 flex-1 shrink-0 items-start justify-between gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/70"
+          className={`flex min-w-0 basis-48 flex-1 shrink-0 items-start justify-between gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/70 ${session.type === 'cardio' ? 'flex-wrap' : ''}`}
         >
-          <div className="min-w-0">
+          <div className={session.type === 'cardio' ? 'min-w-0 flex-1 basis-28' : 'min-w-0'}>
             <p className="text-xs uppercase tracking-[0.24em] text-accent-300">{session.workoutName}</p>
             <h3 className="mt-1 text-lg font-bold">{new Date(session.finishedAt).toLocaleDateString('pt-BR')}</h3>
             {timing ? (
@@ -107,7 +108,11 @@ const HistorySessionCard = ({ session, isExpanded, onToggle, onDelete }: History
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2 text-zinc-300">
-            <span className="rounded-full bg-white/5 px-3 py-2 text-xs">{session.exercises.length} exercícios</span>
+            <span className="rounded-full bg-white/5 px-3 py-2 text-xs">
+              {session.type === 'cardio'
+                ? (session.intervals ? `${session.intervals.completedCount}/${session.intervals.targetCount} tiros` : 'Contínuo')
+                : `${session.exercises.length} exercícios`}
+            </span>
             {isExpanded ? <ChevronUp size={20} aria-hidden="true" /> : <ChevronDown size={20} aria-hidden="true" />}
           </div>
         </button>
@@ -130,7 +135,7 @@ const HistorySessionCard = ({ session, isExpanded, onToggle, onDelete }: History
       >
         <div className="min-h-0 overflow-hidden">
           <div className="space-y-3">
-            {session.exercises.map((exercise) => (
+            {session.type === 'cardio' ? <CardioHistoryDetails session={session} /> : session.exercises.map((exercise) => (
               <div key={exercise.exerciseId} className="rounded-2xl border border-white/10 bg-black/20 p-3">
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <div>
@@ -178,7 +183,7 @@ export const HistoryPage = () => {
     setExpandedHistoryId(null);
   };
 
-  const renderSessions = (sessions: WorkoutSessionHistory[]) => (
+  const renderSessions = (sessions: SessionHistory[]) => (
     <div className="space-y-3">
       {sessions.map((session) => (
         <HistorySessionCard
@@ -221,7 +226,7 @@ export const HistoryPage = () => {
       <section className="panel p-5">
         <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Histórico</p>
         <h2 className="mt-1 text-2xl font-bold">Sessões registradas</h2>
-        <p className="mt-2 text-sm text-zinc-400">Veja data, treino, cargas e repetições realizadas em cada exercício.</p>
+        <p className="mt-2 text-sm text-zinc-400">Veja seus treinos de musculação e atividades aeróbicas registrados.</p>
       </section>
 
       {yearGroups.length === 0 ? (

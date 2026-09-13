@@ -12,6 +12,7 @@ import { getWorkoutDurationSeconds, useWorkoutDuration } from '@/hooks/useWorkou
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
 import type { WorkoutProgressSummary } from '@/utils/workoutProgress';
 import { getWorkoutProgress } from '@/utils/workoutProgress';
+import { getSessionPath } from '@/utils/sessions';
 
 type WorkoutSessionIndicatorProps = {
   workoutId: string;
@@ -57,7 +58,7 @@ export const WorkoutPage = () => {
 
   const workoutId = id === 'A' || id === 'B' || id === 'C' ? id : null;
   const workout = workoutId ? workoutsById[workoutId] : null;
-  const activeDraft = state.activeDraft?.workoutId === workoutId ? state.activeDraft : null;
+  const activeDraft = state.activeDraft?.type !== 'cardio' && state.activeDraft?.workoutId === workoutId ? state.activeDraft : null;
   const duration = useWorkoutDuration(activeDraft?.startedAt);
   const progress = activeDraft ? getWorkoutProgress(activeDraft) : null;
   const hasCompletedSet = activeDraft?.exercises.some((exercise) => exercise.sets.some((set) => set.completed)) ?? false;
@@ -166,13 +167,17 @@ export const WorkoutPage = () => {
           <section className="panel p-5">
             <p className="text-xs uppercase tracking-[0.24em] text-accent-300">Modo visualização</p>
             <p className="mt-2 text-sm text-zinc-400">Consulte sua ficha. Nenhuma sessão será criada até você iniciar o treino.</p>
-            <button
+            {state.activeDraft?.type === 'cardio' ? (
+              <Link to={getSessionPath(state.activeDraft)} className="touch-button mt-5 w-full bg-accent-500 text-white">
+                Voltar à atividade em andamento
+              </Link>
+            ) : <button
               type="button"
               onClick={() => startWorkout(workoutId)}
               className="touch-button mt-5 w-full bg-accent-500 text-base font-semibold text-white"
             >
               Iniciar treino
-            </button>
+            </button>}
           </section>
 
           <section className="space-y-4">
