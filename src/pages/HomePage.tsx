@@ -72,7 +72,7 @@ export const HomePage = () => {
               </section>
             )}
             <button type="button" onClick={() => setSelectorOpen(true)} aria-haspopup="dialog"
-              className="touch-button w-full bg-white/5 text-zinc-100">Fazer outro treino</button>
+              className="touch-button w-full border border-accent-500 bg-white/5 text-accent-500">Fazer outro treino</button>
           </>
         )}
 
