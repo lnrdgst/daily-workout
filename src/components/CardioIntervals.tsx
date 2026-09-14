@@ -49,7 +49,7 @@ export const CardioIntervals = ({ draft }: { draft: CardioSessionDraft }) => {
       {!intervals && !editing && (
         <>
           <p className="mt-2 text-sm text-zinc-400">Você pode treinar continuamente ou configurar tiros quando quiser.</p>
-          <button type="button" onClick={() => setEditing(true)} className="touch-button mt-4 w-full bg-white/10">Configurar tiros</button>
+          <button type="button" onClick={() => setEditing(true)} className="touch-button mt-4 w-full border border-accent-500 bg-white/5 text-accent-500">Configurar tiros</button>
         </>
       )}
       {editing && (
