@@ -5,6 +5,15 @@ export const createCardioDraft = (modality: CardioModality): CardioSessionDraft 
   type: 'cardio', modality, startedAt: new Date().toISOString(), intervalEndAt: null,
 });
 
+export const isShortCardioSession = (draft: Pick<CardioSessionDraft, 'startedAt'>, now = Date.now()): boolean =>
+  now - new Date(draft.startedAt).getTime() < 60000;
+
+export const removeIntervals = (draft: CardioSessionDraft): CardioSessionDraft => {
+  const next = { ...draft, intervalEndAt: null };
+  delete next.intervals;
+  return next;
+};
+
 export const configureIntervals = (draft: CardioSessionDraft, targetCount: number, durationSeconds: number): CardioSessionDraft => {
   if (draft.intervalEndAt !== null || !Number.isSafeInteger(targetCount) || targetCount < 1 ||
       !Number.isSafeInteger(durationSeconds) || durationSeconds < 1 || durationSeconds > 86400 ||

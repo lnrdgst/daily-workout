@@ -11,7 +11,7 @@ import {
   saveAppState,
 } from '@/utils/storage';
 import { primeRestAlertSound, triggerRestFinishedAlerts, triggerIntervalFinishedAlerts } from '@/utils/restAlerts';
-import { buildCardioHistoryEntry, configureIntervals, createCardioDraft, markInterval, settleInterval, startInterval, undoInterval } from '@/utils/cardioSession';
+import { buildCardioHistoryEntry, configureIntervals, createCardioDraft, isShortCardioSession, markInterval, removeIntervals, settleInterval, startInterval, undoInterval } from '@/utils/cardioSession';
 import { isStrengthHistory } from '@/utils/sessions';
 import { loadRestAlertSettings } from '@/utils/restAlertSettings';
 import type { CardioData, CardioModality, CardioSessionDraft, ExerciseSetLog, RestTimerSessionState, WorkoutAppState, WorkoutId, WorkoutSessionHistory } from '@/types/workout';
@@ -26,6 +26,7 @@ interface WorkoutStoreValue {
   markCardioInterval: () => void;
   undoCardioInterval: () => void;
   cancelCardioInterval: () => void;
+  removeCardioIntervals: () => void;
   updateSet: (exerciseId: string, setIndex: number, patch: Partial<ExerciseSetLog>) => void;
   toggleSetCompleted: (exerciseId: string, setIndex: number) => void;
   startRestTimer: (seconds: RestTimerSessionState['selectedSeconds']) => void;
@@ -156,6 +157,7 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
       markCardioInterval: () => changeCardio(markInterval),
       undoCardioInterval: () => changeCardio(undoInterval),
       cancelCardioInterval: () => changeCardio((draft) => ({ ...draft, intervalEndAt: null })),
+      removeCardioIntervals: () => changeCardio(removeIntervals),
       startWorkout: (workoutId) => {
         setState((current) => {
           if (current.activeDraft?.type === 'cardio') return current;
@@ -280,14 +282,16 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
         }
 
         completedEndAtRef.current = stateRef.current.restTimer.endAt;
+        const now = Date.now();
         const entry = current.activeDraft.type === 'cardio'
-          ? buildCardioHistoryEntry(current.activeDraft) : buildHistoryEntry(current.activeDraft);
+          ? (isShortCardioSession(current.activeDraft, now) ? null : buildCardioHistoryEntry(current.activeDraft, now))
+          : buildHistoryEntry(current.activeDraft);
         const nextState: WorkoutAppState = {
           ...current,
           lastCompletedWorkoutId: current.activeDraft.type === 'cardio' ? current.lastCompletedWorkoutId : current.activeDraft.workoutId,
           activeDraft: null,
           restTimer: defaultRestTimerState,
-          history: [...current.history, entry],
+          history: entry ? [...current.history, entry] : current.history,
         };
 
         // Persist the completed session before the route changes.

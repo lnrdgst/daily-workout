@@ -20,6 +20,7 @@ const cardio = load('src/utils/cardioSession.ts');
 const storage = load('src/utils/storage.ts');
 const { workoutsById } = load('src/data/workouts.ts');
 const { getWorkoutSequenceProgress } = load('src/utils/workoutSequence.ts');
+const { formatLastWorkoutTiming } = load('src/utils/workoutTiming.ts');
 const legacy = ['A', 'B', 'C'].map((id, index) => ({
   ...storage.buildHistoryEntry(storage.createWorkoutDraft(workoutsById[id])),
   type: undefined, id, finishedAt: new Date(2026, 8, 10 + index).toISOString(),
@@ -105,4 +106,39 @@ test('invalid interval plans are rejected without mutating the active session', 
   for (const [count, seconds] of [[0, 30], [-1, 30], [1.5, 30], [10, 0], [10, NaN], [10, Infinity], [10, 86401]]) {
     assert.equal(cardio.configureIntervals(draft, count, seconds), draft);
   }
+});
+
+test('cardio short-session threshold is strictly below 60 seconds, including completed intervals', () => {
+  let draft = cardio.configureIntervals(cardio.createCardioDraft('running'), 10, 30);
+  draft = cardio.markInterval(draft);
+  const start = new Date(draft.startedAt).getTime();
+  assert.equal(cardio.isShortCardioSession(draft, start + 59999), true);
+  assert.equal(cardio.isShortCardioSession(draft, start + 60000), false);
+  assert.equal(cardio.isShortCardioSession(draft, start + 60001), false);
+});
+
+test('removing intervals clears planning, count and running deadline while preserving activity data', () => {
+  for (const completed of [false, true]) {
+    let draft = { ...cardio.createCardioDraft('spinning'), distanceKm: 12.4, notes: 'Continuar pedalando' };
+    draft = cardio.configureIntervals(draft, 10, 30);
+    if (completed) draft = cardio.markInterval(draft);
+    draft = cardio.startInterval(draft);
+    const original = JSON.stringify(draft);
+    const continuous = cardio.removeIntervals(draft);
+    assert.equal(continuous.intervals, undefined);
+    assert.equal(continuous.intervalEndAt, null);
+    assert.equal(continuous.startedAt, draft.startedAt);
+    assert.equal(continuous.distanceKm, 12.4);
+    assert.equal(continuous.notes, draft.notes);
+    assert.equal(JSON.stringify(draft), original);
+    assert.equal(cardio.settleInterval(continuous, Date.now() + 60000), continuous);
+    assert.equal(cardio.buildCardioHistoryEntry(continuous).intervals, undefined);
+  }
+});
+
+test('last workout timing uses local Today or the full date consistently', () => {
+  const start = new Date(2026, 8, 9, 21, 11).toISOString();
+  const finish = new Date(2026, 8, 9, 21, 19).toISOString();
+  assert.equal(formatLastWorkoutTiming(start, finish, new Date(2026, 8, 9, 23)), 'Hoje · 21:11 às 21:19');
+  assert.equal(formatLastWorkoutTiming(start, finish, new Date(2026, 8, 10)), '09/09/2026 das 21:11 às 21:19');
 });

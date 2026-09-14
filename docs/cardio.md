@@ -25,6 +25,10 @@ O planejamento contém `targetCount`, `durationSeconds` e `completedCount`.
 Há atalhos de 30/45/60 segundos e duração personalizada inteira de 1 segundo a 24h.
 O usuário inicia cada tiro; não há recuperação nem início automático do próximo.
 
+“Remover tiros”, na edição, retorna ao modo contínuo sem mudar `startedAt` ou os
+dados da atividade. Se existem tiros concluídos, é necessária confirmação para
+descartar esses dados. Um timer de tiro ativo também é limpo. A sessão segue aberta.
+
 O provider detecta o vencimento por `intervalEndAt - Date.now()`. Timeout, foco e
 retorno à visibilidade verificam o mesmo estado. A UI apenas atualiza a exibição.
 Conclusão e limpeza do timestamp são persistidas antes do alerta. Uma referência
@@ -49,7 +53,10 @@ As permissões e limitações do navegador continuam valendo, inclusive em backg
 - Home e resumo em Ajustes consideram a última sessão de qualquer tipo.
 - Sequência ABC, último treino A/B/C e autopreenchimento filtram somente musculação.
 - Cardio não recebe percentual de progresso nem a regra de treino esquecido >=50%.
-- A regra de sessão curta continua exclusiva da tela de musculação.
+- Cardio com duração inferior a 60 segundos é encerrado sem histórico, inclusive
+  quando há tiros marcados. A confirmação informa o descarte; a regra de musculação
+  permanece intacta. Confirmações de cardio contínuo não mencionam tiros.
+- Home e Ajustes compartilham a data contextual do último treino: “Hoje · …” ou data completa.
 - RestTimer, dados da ficha, séries, cargas, spinner, progresso e PWA não foram reescritos.
 
 ## Arquivos

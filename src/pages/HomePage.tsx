@@ -6,6 +6,7 @@ import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
 import { getLatestSession, getSessionName, isStrengthHistory } from '@/utils/sessions';
 import { isSameLocalDay } from '@/utils/localDate';
+import { formatLastWorkoutTiming } from '@/utils/workoutTiming';
 import { getWorkoutSequenceProgress } from '@/utils/workoutSequence';
 import { WorkoutCard } from '@/components/WorkoutCard';
 import { WorkoutProgress } from '@/components/WorkoutProgress';
@@ -19,7 +20,6 @@ export const HomePage = () => {
   const sequenceSteps = ['A', 'B', 'C'] as const;
   const now = new Date();
   const trainedToday = state.history.some((session) => isSameLocalDay(new Date(session.finishedAt), now));
-  const lastWorkoutWasToday = lastWorkout ? isSameLocalDay(new Date(lastWorkout.finishedAt), now) : false;
   const hour = now.getHours();
   const greeting = hour >= 5 && hour < 12 ? 'Bom dia' : hour >= 12 && hour < 18 ? 'Boa tarde' : 'Boa noite';
   const displayName = userPreferences.displayName.trim();
@@ -82,15 +82,7 @@ export const HomePage = () => {
                 </span>
               </div>
               <p className="text-sm text-zinc-400">
-                {lastWorkoutWasToday ? 'Hoje ·' : `${new Date(lastWorkout.finishedAt).toLocaleDateString('pt-BR')} das`}{' '}
-                {new Date(lastWorkout.startedAt).toLocaleTimeString('pt-BR', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}{' '}
-                às{' '}{new Date(lastWorkout.finishedAt).toLocaleTimeString('pt-BR', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
+                {formatLastWorkoutTiming(lastWorkout.startedAt, lastWorkout.finishedAt, now)}
               </p>
             </div>
           ) : (

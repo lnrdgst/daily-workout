@@ -7,6 +7,7 @@ import { cardioModalities, isCardioModality } from '@/data/cardio';
 import { useWorkoutDuration } from '@/hooks/useWorkoutDuration';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
 import { getSessionPath } from '@/utils/sessions';
+import { isShortCardioSession } from '@/utils/cardioSession';
 import type { CardioData } from '@/types/workout';
 
 const numericFields = [
@@ -19,7 +20,7 @@ export const CardioPage = () => {
   const { state, startCardio, updateCardio, finishWorkout, discardDraft } = useWorkoutStore();
   const draft = state.activeDraft?.type === 'cardio' && state.activeDraft.modality === modality ? state.activeDraft : null;
   const duration = useWorkoutDuration(draft?.startedAt);
-  const [dialog, setDialog] = useState<'finish' | 'discard' | null>(null);
+  const [dialog, setDialog] = useState<'finish' | 'discard' | 'short' | null>(null);
 
   if (!isCardioModality(modality)) return <section className="panel p-5">Atividade não encontrada. <Link to="/">Voltar</Link></section>;
   const name = cardioModalities[modality];
@@ -67,14 +68,20 @@ export const CardioPage = () => {
                 placeholder="Opcional" className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-base outline-none focus:border-accent-400" />
             </label>
           </section>
-          <button type="button" onClick={() => setDialog('finish')} className="touch-button w-full bg-accent-500 text-base font-semibold text-white">Finalizar treino</button>
+          <button type="button" onClick={() => setDialog(isShortCardioSession(draft) ? 'short' : 'finish')} className="touch-button w-full bg-accent-500 text-base font-semibold text-white">Finalizar treino</button>
           <button type="button" onClick={() => setDialog('discard')} className="touch-button w-full bg-white/5 text-zinc-300">Descartar treino</button>
         </>
       )}
       <ConfirmDialog open={dialog === 'finish'} title="Finalizar treino aeróbico?"
-        description="A duração e os dados preenchidos serão registrados. Você pode finalizar mesmo sem completar todos os tiros."
+        description={draft?.intervals
+          ? 'A duração e os dados preenchidos serão registrados. Você pode finalizar mesmo sem completar todos os tiros.'
+          : 'A duração e os dados preenchidos serão registrados no histórico.'}
         cancelLabel="Continuar treino" confirmLabel="Finalizar treino" onCancel={() => setDialog(null)}
         onConfirm={() => { finishWorkout(); navigate('/history'); }} />
+      <ConfirmDialog open={dialog === 'short'} title="Encerrar treino sem registrar?"
+        description="Este treino durou menos de 1 minuto e não será registrado no histórico. Deseja encerrar mesmo assim?" destructive
+        cancelLabel="Continuar treino" confirmLabel="Encerrar sem registrar" onCancel={() => setDialog(null)}
+        onConfirm={() => { discardDraft(); navigate('/'); }} />
       <ConfirmDialog open={dialog === 'discard'} title="Descartar treino aeróbico?"
         description="Esta sessão será encerrada sem registrar no histórico." destructive
         cancelLabel="Continuar treino" confirmLabel="Descartar treino" onCancel={() => setDialog(null)}

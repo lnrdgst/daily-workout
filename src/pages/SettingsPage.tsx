@@ -9,7 +9,7 @@ import { getLatestSession } from '@/utils/sessions';
 import type { RestAlertSettings, RestAlertVolume } from '@/utils/restAlertSettings';
 import type { RestDurationSeconds } from '@/utils/restTimerSettings';
 import type { WorkoutSessionSettings } from '@/utils/workoutSessionSettings';
-import { formatWorkoutTimeRange } from '@/utils/workoutTiming';
+import { formatLastWorkoutTiming } from '@/utils/workoutTiming';
 
 interface AlertToggleProps {
   label: string;
@@ -68,7 +68,7 @@ export const SettingsPage = () => {
   const displayNameFeedbackTimeoutRef = useRef<number | null>(null);
   const isDisplayNameSavePendingRef = useRef(false);
   const lastWorkout = getLatestSession(state.history);
-  const timing = lastWorkout ? formatWorkoutTimeRange(lastWorkout.startedAt, lastWorkout.finishedAt) : null;
+  const timing = lastWorkout ? formatLastWorkoutTiming(lastWorkout.startedAt, lastWorkout.finishedAt) : null;
   const notificationSupported = typeof Notification !== 'undefined';
   const notificationBlocked = !notificationSupported || Notification.permission === 'denied';
   const notificationStatusMessage = !notificationSupported

@@ -1,16 +1,27 @@
 import { useEffect, useState } from 'react';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { formatWorkoutDuration } from '@/hooks/useWorkoutDuration';
 import type { CardioSessionDraft } from '@/types/workout';
 
 export const CardioIntervals = ({ draft }: { draft: CardioSessionDraft }) => {
-  const { configureCardioIntervals, startCardioInterval, markCardioInterval, undoCardioInterval, cancelCardioInterval } = useWorkoutStore();
+  const { configureCardioIntervals, startCardioInterval, markCardioInterval, undoCardioInterval, cancelCardioInterval, removeCardioIntervals } = useWorkoutStore();
+  const [confirmRemoval, setConfirmRemoval] = useState(false);
   const [editing, setEditing] = useState(false);
   const [target, setTarget] = useState(String(draft.intervals?.targetCount ?? 10));
   const [seconds, setSeconds] = useState(String(draft.intervals?.durationSeconds ?? 30));
   const [now, setNow] = useState(Date.now);
   const running = draft.intervalEndAt !== null;
   const intervals = draft.intervals;
+  const removePlan = () => {
+    removeCardioIntervals();
+    setConfirmRemoval(false);
+    setEditing(false);
+  };
+  const requestRemoval = () => {
+    if ((intervals?.completedCount ?? 0) > 0) setConfirmRemoval(true);
+    else removePlan();
+  };
   const remaining = Math.max(0, Math.ceil(((draft.intervalEndAt ?? now) - now) / 1000));
   const targetNumber = Number(target);
   const secondsNumber = Number(seconds);
@@ -32,6 +43,7 @@ export const CardioIntervals = ({ draft }: { draft: CardioSessionDraft }) => {
   }, [running, draft.intervalEndAt]);
 
   return (
+    <>
     <section className="panel p-5">
       <h3 className="text-xs uppercase tracking-[0.24em] text-accent-300">Tiros opcionais</h3>
       {!intervals && !editing && (
@@ -64,6 +76,7 @@ export const CardioIntervals = ({ draft }: { draft: CardioSessionDraft }) => {
           <p className="text-xs text-zinc-500">Duração personalizada em segundos, de 1s até 24h.</p>
           <button disabled={!valid || running} className="touch-button w-full bg-accent-500 text-white disabled:opacity-40">Salvar tiros</button>
           <button type="button" onClick={() => setEditing(false)} className="touch-button w-full bg-white/5">Cancelar</button>
+          {intervals && <button type="button" onClick={requestRemoval} className="touch-button w-full bg-white/5 text-zinc-300">Remover tiros</button>}
         </form>
       )}
       {intervals && !editing && (
@@ -80,6 +93,7 @@ export const CardioIntervals = ({ draft }: { draft: CardioSessionDraft }) => {
               {!running && <button type="button" onClick={startCardioInterval} className="touch-button bg-accent-500 text-white">Iniciar tiro</button>}
               <button type="button" onClick={markCardioInterval} className="touch-button bg-white/10">Marcar tiro</button>
               {running && <button type="button" onClick={cancelCardioInterval} className="touch-button bg-white/5">Cancelar tiro</button>}
+              {running && <button type="button" onClick={requestRemoval} className="touch-button bg-white/5">Treino contínuo</button>}
             </div>
           )}
           {!running && <div className="grid gap-2">
@@ -91,5 +105,10 @@ export const CardioIntervals = ({ draft }: { draft: CardioSessionDraft }) => {
         </div>
       )}
     </section>
+    <ConfirmDialog open={confirmRemoval} title="Remover planejamento de tiros?"
+      description="Os tiros registrados nesta sessão serão descartados, mas o treino continuará como atividade contínua."
+      cancelLabel="Manter tiros" confirmLabel="Remover tiros" destructive
+      onCancel={() => setConfirmRemoval(false)} onConfirm={removePlan} />
+    </>
   );
 };
