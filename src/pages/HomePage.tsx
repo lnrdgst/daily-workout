@@ -1,4 +1,5 @@
-import { Check } from 'lucide-react';
+import { useState } from 'react';
+import { Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { workouts } from '@/data/workouts';
 import { cardioModalities } from '@/data/cardio';
@@ -14,6 +15,9 @@ import { WorkoutProgress } from '@/components/WorkoutProgress';
 export const HomePage = () => {
   const { state } = useWorkoutStore();
   const [userPreferences] = useUserPreferences();
+  const [openCategory, setOpenCategory] = useState<'cardio' | 'strength' | null>('strength');
+  const toggleCategory = (category: 'cardio' | 'strength') =>
+    setOpenCategory((current) => current === category ? null : category);
   const lastWorkout = getLatestSession(state.history);
   const strengthHistory = state.history.filter(isStrengthHistory);
   const sequenceProgress = getWorkoutSequenceProgress(state.history);
@@ -92,18 +96,42 @@ export const HomePage = () => {
       )}
 
       {state.activeDraft && state.activeDraft.type !== 'cardio' && <WorkoutProgress draft={state.activeDraft} />}
-      <section className="panel p-5">
-        <p className="text-xs uppercase tracking-[0.24em] text-accent-300">Aeróbico</p>
-        <h2 className="mt-1 text-xl font-bold">Escolha sua atividade</h2>
-        <div className="mt-4 grid gap-2">
+      <section className="space-y-3">
+        <h2>
+          <button type="button" id="cardio-category-heading" aria-expanded={openCategory === 'cardio'}
+            aria-controls="cardio-category-content" onClick={() => toggleCategory('cardio')}
+            className="panel flex min-h-12 w-full items-center justify-between gap-3 p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400">
+            <span className="min-w-0">
+              <span className="block text-xs uppercase tracking-[0.24em] text-accent-300">Aeróbico</span>
+              <span className="mt-1 block text-sm text-zinc-400">{Object.keys(cardioModalities).length} atividades</span>
+            </span>
+            {openCategory === 'cardio' ? <ChevronDown className="shrink-0 text-zinc-300" size={20} aria-hidden="true" /> : <ChevronRight className="shrink-0 text-zinc-300" size={20} aria-hidden="true" />}
+          </button>
+        </h2>
+        <div id="cardio-category-content" role="region" aria-labelledby="cardio-category-heading" hidden={openCategory !== 'cardio'}>
+          <div className="panel grid gap-2 p-4">
           {Object.entries(cardioModalities).map(([modality, name]) => (
             <Link key={modality} to={`/cardio/${modality}`} className="touch-button justify-start bg-white/5 text-zinc-100">
               {name}
             </Link>
           ))}
+          </div>
         </div>
       </section>
-      <section className="space-y-4">
+      <section className="space-y-3">
+        <h2>
+          <button type="button" id="strength-category-heading" aria-expanded={openCategory === 'strength'}
+            aria-controls="strength-category-content" onClick={() => toggleCategory('strength')}
+            className="panel flex min-h-12 w-full items-center justify-between gap-3 p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400">
+            <span className="min-w-0">
+              <span className="block text-xs uppercase tracking-[0.24em] text-accent-300">Musculação</span>
+              <span className="mt-1 block text-sm text-zinc-400">Treinos A · B · C</span>
+            </span>
+            {openCategory === 'strength' ? <ChevronDown className="shrink-0 text-zinc-300" size={20} aria-hidden="true" /> : <ChevronRight className="shrink-0 text-zinc-300" size={20} aria-hidden="true" />}
+          </button>
+        </h2>
+        <div id="strength-category-content" role="region" aria-labelledby="strength-category-heading" hidden={openCategory !== 'strength'}>
+          <div className="space-y-4">
         {workouts.map((workout) => (
           <WorkoutCard
             key={workout.id}
@@ -112,6 +140,8 @@ export const HomePage = () => {
             completedSessionCount={strengthHistory.filter((session) => session.workoutId === workout.id).length}
           />
         ))}
+          </div>
+        </div>
       </section>
     </div>
   );

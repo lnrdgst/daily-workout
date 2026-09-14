@@ -75,6 +75,34 @@ async function main() {
 
   try {
     await page.goto(baseURL);
+    const cardioCategory = page.getByRole('button', { name: 'Aeróbico 5 atividades', exact: true });
+    const strengthCategory = page.getByRole('button', { name: 'Musculação Treinos A · B · C', exact: true });
+    const beforeCategories = await state();
+    assert.equal(await strengthCategory.getAttribute('aria-expanded'), 'true');
+    assert.equal(await cardioCategory.getAttribute('aria-expanded'), 'false');
+    assert.equal(await page.getByRole('link', { name: 'Bike ergométrica', exact: true }).count(), 0);
+    await cardioCategory.focus();
+    await page.keyboard.press('Enter');
+    assert.equal(await strengthCategory.getAttribute('aria-expanded'), 'false');
+    assert.equal(await cardioCategory.getAttribute('aria-expanded'), 'true');
+    assert.equal(await page.getByRole('link', { name: 'Ver ficha de treino', exact: true }).count(), 0);
+    await page.getByText('Último treino concluído', { exact: true }).waitFor();
+    await noOverflow();
+    fs.mkdirSync('dist/cardio-qa/artifacts', { recursive: true });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: 'dist/cardio-qa/artifacts/home-cardio-320.png', fullPage: true, animations: 'disabled' });
+    await cardioCategory.focus();
+    await page.keyboard.press('Space');
+    assert.equal(await cardioCategory.getAttribute('aria-expanded'), 'false');
+    assert.equal(await strengthCategory.getAttribute('aria-expanded'), 'false');
+    await strengthCategory.click();
+    await cardioCategory.click();
+    assert.deepEqual(await state(), beforeCategories, 'category selection must not change persisted workout state');
+    await page.reload();
+    assert.equal(await strengthCategory.getAttribute('aria-expanded'), 'true');
+    assert.equal(await cardioCategory.getAttribute('aria-expanded'), 'false');
+    console.log('PASS exclusive Home accordions, keyboard controls, global last workout, no persisted preference and reload default');
+    await cardioCategory.click();
     await page.getByRole('link', { name: 'Bike ergométrica', exact: true }).click();
     assert.equal((await state()).activeDraft, null, 'preview must not create a session');
     assert.equal(await page.evaluate(() => window.__qa.wakeRequests), 0);
