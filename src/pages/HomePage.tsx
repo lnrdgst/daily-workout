@@ -15,6 +15,7 @@ import { WorkoutProgress } from '@/components/WorkoutProgress';
 export const HomePage = () => {
   const { state } = useWorkoutStore();
   const [userPreferences] = useUserPreferences();
+  const cardioCount = Object.keys(cardioModalities).length;
   const [openCategory, setOpenCategory] = useState<'cardio' | 'strength' | null>('strength');
   const toggleCategory = (category: 'cardio' | 'strength') =>
     setOpenCategory((current) => current === category ? null : category);
@@ -103,7 +104,7 @@ export const HomePage = () => {
             className="panel flex min-h-12 w-full items-center justify-between gap-3 p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400">
             <span className="min-w-0">
               <span className="block text-xs uppercase tracking-[0.24em] text-accent-300">Aeróbico</span>
-              <span className="mt-1 block text-sm text-zinc-400">{Object.keys(cardioModalities).length} atividades</span>
+              <span className="mt-1 block text-sm text-zinc-400">{cardioCount} {cardioCount === 1 ? 'atividade' : 'atividades'}</span>
             </span>
             {openCategory === 'cardio' ? <ChevronDown className="shrink-0 text-zinc-300" size={20} aria-hidden="true" /> : <ChevronRight className="shrink-0 text-zinc-300" size={20} aria-hidden="true" />}
           </button>
@@ -125,7 +126,7 @@ export const HomePage = () => {
             className="panel flex min-h-12 w-full items-center justify-between gap-3 p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400">
             <span className="min-w-0">
               <span className="block text-xs uppercase tracking-[0.24em] text-accent-300">Musculação</span>
-              <span className="mt-1 block text-sm text-zinc-400">Treinos A · B · C</span>
+              <span className="mt-1 block text-sm text-zinc-400">{workouts.length === 1 ? 'Treino' : 'Treinos'} {workouts.map((workout) => workout.id).join(' · ')}</span>
             </span>
             {openCategory === 'strength' ? <ChevronDown className="shrink-0 text-zinc-300" size={20} aria-hidden="true" /> : <ChevronRight className="shrink-0 text-zinc-300" size={20} aria-hidden="true" />}
           </button>

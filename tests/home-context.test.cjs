@@ -42,7 +42,7 @@ function session(date, workoutId = 'B') {
     startedAt: startedAt.toISOString(), finishedAt: finishedAt.toISOString(), exercises: [] };
 }
 
-function renderHome(history = [], activeDraft = null, now = today, displayName = 'Leonardo') {
+function renderHome(history = [], activeDraft = null, now = today, displayName = 'Leonardo', dataMocks = {}) {
   class Clock extends Date {
     constructor(...args) { super(...(args.length ? args : [now.getTime()])); }
   }
@@ -53,6 +53,7 @@ function renderHome(history = [], activeDraft = null, now = today, displayName =
     '@/hooks/useUserPreferences': { useUserPreferences: () => [{ displayName }] },
     '@/components/WorkoutProgress': { WorkoutProgress: () => React.createElement('div', null, 'Progresso ativo') },
     'react-router-dom': { Link: ({ to, children, ...props }) => React.createElement('a', { href: to, ...props }, children) },
+    ...dataMocks,
   };
   const { HomePage } = loadModule('src/pages/HomePage.tsx', mocks, Clock);
   const html = renderToStaticMarkup(React.createElement(HomePage));
@@ -67,6 +68,25 @@ test('no recorded session preserves the standard greeting, description and worko
   assert.ok(text.includes(defaultDescription));
   assert.ok(text.includes('Você ainda não concluiu nenhum treino.'));
   for (const id of ['A', 'B', 'C']) assert.ok(html.includes(`href="/workout/${id}"`));
+});
+
+test('cardio subtitle follows the real modality collection and handles singular', () => {
+  const { cardioModalities } = loadModule('src/data/cardio.ts', {});
+  for (const count of [5, 4, 2, 1]) {
+    const modalities = Object.fromEntries(Object.entries(cardioModalities).slice(0, count));
+    const { text } = renderHome([], null, today, 'Leonardo', { '@/data/cardio': { cardioModalities: modalities } });
+    assert.ok(text.includes(`Aeróbico${count} ${count === 1 ? 'atividade' : 'atividades'}`));
+  }
+});
+
+test('strength subtitle follows the same workouts used for cards, without assuming ABC', () => {
+  const data = loadModule('src/data/workouts.ts', {});
+  for (const ids of [['A', 'B', 'C'], ['A', 'B', 'C', 'D'], ['A', 'B'], ['A']]) {
+    const workouts = ids.map((id) => ({ ...data.workouts[0], id, name: `Treino ${id}` }));
+    const { text, html } = renderHome([], null, today, 'Leonardo', { '@/data/workouts': { ...data, workouts } });
+    assert.ok(text.includes(`Musculação${ids.length === 1 ? 'Treino' : 'Treinos'} ${ids.join(' · ')}`));
+    for (const id of ids) assert.ok(html.includes(`href="/workout/${id}"`));
+  }
 });
 
 test('one or multiple sessions today use the same completed copy and local time range', () => {
