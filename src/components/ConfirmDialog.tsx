@@ -12,6 +12,7 @@ interface ConfirmDialogProps {
   children?: ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
+  additionalAction?: { label: string; onClick: () => void };
 }
 
 export const ConfirmDialog = ({
@@ -25,6 +26,7 @@ export const ConfirmDialog = ({
   children,
   onConfirm,
   onCancel,
+  additionalAction,
 }: ConfirmDialogProps) => {
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const onCancelRef = useRef(onCancel);
@@ -79,6 +81,11 @@ export const ConfirmDialog = ({
           >
             {confirmLabel}
           </button>
+          {additionalAction && (
+            <button type="button" onClick={additionalAction.onClick} className="touch-button bg-danger font-semibold text-white">
+              {additionalAction.label}
+            </button>
+          )}
         </div>
       </section>
     </div>

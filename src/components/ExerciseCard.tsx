@@ -61,7 +61,7 @@ export const ExerciseCard = ({
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <div className="rounded-2xl bg-white/5 px-3 py-2 text-right text-xs text-zinc-400">
-          <p>{isCompleted ? `${completedSets}/${sessionState.sets.length} séries` : `${exercise.sets} séries`}</p>
+          <p>{completedSets > 0 ? `${completedSets}/${sessionState.sets.length} séries` : `${exercise.sets} séries`}</p>
           <p>{isCompleted ? 'Concluído' : `${exercise.repsMin}-${exercise.repsMax} reps`}</p>
         </div>
         {isCompleted && (isExpanded ? <ChevronUp size={20} aria-hidden="true" /> : <ChevronDown size={20} aria-hidden="true" />)}

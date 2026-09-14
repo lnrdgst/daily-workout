@@ -72,7 +72,12 @@ const loadRestTimerState = (value: unknown): RestTimerSessionState => {
   const isRunning = timer.status === 'running' && endAt !== null;
 
   if (isRunning) {
-    return { status: 'running', selectedSeconds, endAt };
+    const source = timer.automaticSource;
+    const automaticSource = source && typeof source.id === 'string' &&
+      (source.workoutId === 'A' || source.workoutId === 'B' || source.workoutId === 'C') &&
+      typeof source.startedAt === 'string' && typeof source.exerciseId === 'string' &&
+      Number.isInteger(source.setIndex) && source.setIndex >= 0 ? source : undefined;
+    return { status: 'running', selectedSeconds, endAt, ...(automaticSource ? { automaticSource } : {}) };
   }
 
   return {

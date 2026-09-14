@@ -13,8 +13,9 @@ import {
 import { primeRestAlertSound, triggerRestFinishedAlerts, triggerIntervalFinishedAlerts } from '@/utils/restAlerts';
 import { buildCardioHistoryEntry, configureIntervals, createCardioDraft, isShortCardioSession, markInterval, removeIntervals, settleInterval, startInterval, undoInterval } from '@/utils/cardioSession';
 import { isStrengthHistory } from '@/utils/sessions';
+import { undoCompletedSet } from '@/utils/setCompletion';
 import { loadRestAlertSettings } from '@/utils/restAlertSettings';
-import type { CardioData, CardioModality, CardioSessionDraft, ExerciseSetLog, RestTimerSessionState, WorkoutAppState, WorkoutId, WorkoutSessionHistory } from '@/types/workout';
+import type { CardioData, CardioModality, CardioSessionDraft, ExerciseSetLog, RestTimerSessionState, SetCompletionTarget, WorkoutAppState, WorkoutId, WorkoutSessionHistory } from '@/types/workout';
 
 interface WorkoutStoreValue {
   state: WorkoutAppState;
@@ -29,7 +30,8 @@ interface WorkoutStoreValue {
   removeCardioIntervals: () => void;
   updateSet: (exerciseId: string, setIndex: number, patch: Partial<ExerciseSetLog>) => void;
   toggleSetCompleted: (exerciseId: string, setIndex: number) => void;
-  startRestTimer: (seconds: RestTimerSessionState['selectedSeconds']) => void;
+  startRestTimer: (seconds: RestTimerSessionState['selectedSeconds'], automaticTarget?: SetCompletionTarget) => void;
+  undoSetCompleted: (target: SetCompletionTarget, cancelRestId?: string) => void;
   stopRestTimer: () => void;
   selectRestTimerPreset: (seconds: RestTimerSessionState['selectedSeconds']) => void;
   finishWorkout: () => void;
@@ -110,8 +112,9 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
           ...current,
           restTimer: {
             ...current.restTimer,
-            status: 'finished',
-            endAt: null,
+              status: 'finished',
+              endAt: null,
+              automaticSource: undefined,
           },
         };
       });
@@ -230,13 +233,27 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
           };
         });
       },
-      startRestTimer: (seconds) => {
+      undoSetCompleted: (target, cancelRestId) => {
+        const current = stateRef.current;
+        const next = undoCompletedSet(current, target, cancelRestId);
+        if (next === current) return;
+        if (current.restTimer.endAt !== null && next.restTimer.endAt === null) completedEndAtRef.current = current.restTimer.endAt;
+        saveAppState(next);
+        stateRef.current = next;
+        setState(next);
+      },
+      startRestTimer: (seconds, automaticTarget) => {
         completedEndAtRef.current = null;
         primeRestAlertSound();
+        const automaticSource = automaticTarget ? { ...automaticTarget, id: crypto.randomUUID() } : undefined;
         setState((current) => {
           if (!current.activeDraft || current.activeDraft.type === 'cardio') {
             return current;
           }
+
+          if (automaticSource && (current.activeDraft.workoutId !== automaticSource.workoutId ||
+            current.activeDraft.startedAt !== automaticSource.startedAt ||
+            !current.activeDraft.exercises.find((exercise) => exercise.exerciseId === automaticSource.exerciseId)?.sets[automaticSource.setIndex]?.completed)) return current;
 
           return {
             ...current,
@@ -244,6 +261,7 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
               status: 'running',
               selectedSeconds: seconds,
               endAt: Date.now() + seconds * 1000,
+              ...(automaticSource ? { automaticSource } : {}),
             },
           };
         });
@@ -256,6 +274,7 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
             ...current.restTimer,
             status: 'ready',
             endAt: null,
+            automaticSource: undefined,
           },
         }));
       },

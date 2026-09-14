@@ -52,10 +52,22 @@ export interface WorkoutSessionDraft {
 
 export type RestTimerStatus = 'ready' | 'running' | 'finished';
 
+export interface SetCompletionTarget {
+  workoutId: WorkoutId;
+  startedAt: string;
+  exerciseId: string;
+  setIndex: number;
+}
+
+export interface AutomaticRestSource extends SetCompletionTarget {
+  id: string;
+}
+
 export interface RestTimerSessionState {
   status: RestTimerStatus;
   selectedSeconds: 60 | 90 | 120;
   endAt: number | null;
+  automaticSource?: AutomaticRestSource;
 }
 
 export interface WorkoutSessionHistory {

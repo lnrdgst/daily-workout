@@ -13,6 +13,8 @@ import { useWorkoutStore } from '@/hooks/useWorkoutStore';
 import type { WorkoutProgressSummary } from '@/utils/workoutProgress';
 import { getWorkoutProgress } from '@/utils/workoutProgress';
 import { getSessionPath } from '@/utils/sessions';
+import { getRelatedAutomaticRestId } from '@/utils/setCompletion';
+import type { SetCompletionTarget } from '@/types/workout';
 
 type WorkoutSessionIndicatorProps = {
   workoutId: string;
@@ -46,6 +48,7 @@ export const WorkoutPage = () => {
     startWorkout,
     updateSet,
     toggleSetCompleted,
+    undoSetCompleted,
     startRestTimer,
     finishWorkout,
     discardDraft,
@@ -55,6 +58,7 @@ export const WorkoutPage = () => {
   const [workoutSessionSettings] = useWorkoutSessionSettings();
   const [isFinishDialogOpen, setIsFinishDialogOpen] = useState(false);
   const [isAccidentalFinishDialogOpen, setIsAccidentalFinishDialogOpen] = useState(false);
+  const [undoTarget, setUndoTarget] = useState<{ target: SetCompletionTarget; restId: string | null } | null>(null);
 
   const workoutId = id === 'A' || id === 'B' || id === 'C' ? id : null;
   const workout = workoutId ? workoutsById[workoutId] : null;
@@ -62,6 +66,12 @@ export const WorkoutPage = () => {
   const duration = useWorkoutDuration(activeDraft?.startedAt);
   const progress = activeDraft ? getWorkoutProgress(activeDraft) : null;
   const hasCompletedSet = activeDraft?.exercises.some((exercise) => exercise.sets.some((set) => set.completed)) ?? false;
+  const canCancelRelatedRest = Boolean(undoTarget?.restId && getRelatedAutomaticRestId(state, undoTarget.target) === undoTarget.restId);
+  const confirmUndo = (cancelRest: boolean) => {
+    if (!undoTarget) return;
+    undoSetCompleted(undoTarget.target, cancelRest ? undoTarget.restId ?? undefined : undefined);
+    setUndoTarget(null);
+  };
 
   const handleFinishRequest = () => {
     if (!activeDraft) {
@@ -78,14 +88,16 @@ export const WorkoutPage = () => {
   };
 
   const handleSetCompletedToggle = (exerciseId: string, setIndex: number, isCurrentlyCompleted: boolean) => {
-    toggleSetCompleted(exerciseId, setIndex);
-
-    if (!activeDraft || isCurrentlyCompleted) {
+    if (!activeDraft) return;
+    const target = { workoutId: activeDraft.workoutId, startedAt: activeDraft.startedAt, exerciseId, setIndex };
+    if (isCurrentlyCompleted) {
+      setUndoTarget({ target, restId: getRelatedAutomaticRestId(state, target) });
       return;
     }
+    toggleSetCompleted(exerciseId, setIndex);
 
     if (workoutSessionSettings.autoStartRestTimer) {
-      startRestTimer(restTimerSettings.defaultRestSeconds);
+      startRestTimer(restTimerSettings.defaultRestSeconds, target);
     }
   };
 
@@ -207,6 +219,17 @@ export const WorkoutPage = () => {
           </button>
         </>
       )}
+
+      <ConfirmDialog
+        open={undoTarget !== null}
+        title="Desmarcar série?"
+        description={`Esta série será marcada novamente como pendente.${canCancelRelatedRest ? ' O descanso atual foi iniciado automaticamente ao concluir esta série.' : ''}`}
+        cancelLabel="Cancelar"
+        confirmLabel="Desmarcar série"
+        onCancel={() => setUndoTarget(null)}
+        onConfirm={() => confirmUndo(false)}
+        additionalAction={canCancelRelatedRest ? { label: 'Desmarcar e cancelar descanso', onClick: () => confirmUndo(true) } : undefined}
+      />
 
       <ConfirmDialog
         open={isFinishDialogOpen}
