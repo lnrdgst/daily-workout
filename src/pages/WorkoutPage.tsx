@@ -224,7 +224,7 @@ export const WorkoutPage = () => {
         open={undoTarget !== null}
         title="Desmarcar série?"
         description={`Esta série será marcada novamente como pendente.${canCancelRelatedRest ? ' O descanso atual foi iniciado automaticamente ao concluir esta série.' : ''}`}
-        cancelLabel="Cancelar"
+        cancelLabel="Voltar"
         confirmLabel="Desmarcar série"
         onCancel={() => setUndoTarget(null)}
         onConfirm={() => confirmUndo(false)}
