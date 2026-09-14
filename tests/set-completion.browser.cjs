@@ -42,7 +42,7 @@ async function main() {
     assert.equal(await relatedAction().count(), 0);
     assert.equal(await page.getByRole('dialog').getByRole('button').count(), 2);
     assert.deepEqual(await state(), noAuto, 'opening confirmation must not mutate state');
-    await action('Cancelar');
+    await action('Voltar');
     assert.deepEqual(await state(), noAuto);
     await openUndo(); await action('Desmarcar série');
     assert.equal((await state()).activeDraft.exercises[0].sets[0].completed, false);
@@ -59,7 +59,7 @@ async function main() {
     fs.mkdirSync('dist/cardio-qa/artifacts', { recursive: true });
     await page.screenshot({ path: 'dist/cardio-qa/artifacts/undo-series-320.png', animations: 'disabled' });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false);
-    await action('Cancelar');
+    await action('Voltar');
     assert.deepEqual(await state(), automatic);
     await openUndo(); await action('Desmarcar série');
     assert.equal((await state()).restTimer.endAt, automatic.restTimer.endAt);
