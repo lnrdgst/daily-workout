@@ -53,6 +53,16 @@ As permissões e limitações do navegador continuam valendo, inclusive em backg
 - Home e resumo em Ajustes consideram a última sessão de qualquer tipo.
 - Sequência ABC, último treino A/B/C e autopreenchimento filtram somente musculação.
 - Cardio não recebe percentual de progresso nem a regra de treino esquecido >=50%.
+- Cardio aberto há pelo menos 2h possui recuperação própria: continuar, descartar
+  ou informar horas/minutos para registrar. A duração manual deve ser de pelo menos
+  1 minuto e não superar os minutos inteiros transcorridos. O término salvo é
+  `startedAt + duração informada`, com `completionSource: 'stale-recovery'` opcional.
+  Ausência do metadado continua compatível com registros normais/antigos.
+  A detecção compartilha montagem, foco, visibilidade e deduplicação com musculação;
+  a política e finalização de musculação permanecem iguais. Cancelar a duração
+  retorna à decisão sem alterar o draft. Nenhum estado do modal é persistido.
+  Tiros vencidos são resolvidos pelo relógio atual, independentemente do término
+  recuperado, preservando a contagem mesmo se o callback ainda não executou.
 - Cardio com duração inferior a 60 segundos é encerrado sem histórico, inclusive
   quando há tiros marcados. A confirmação informa o descarte; a regra de musculação
   permanece intacta. Confirmações de cardio contínuo não mencionam tiros.
@@ -86,6 +96,7 @@ inicie `npm run dev -- --host 127.0.0.1` e instale Playwright em uma pasta tempo
 ```text
 npm install --prefix dist/cardio-qa --no-save --package-lock=false playwright
 node tests/cardio.browser.cjs
+node tests/cardio-recovery.browser.cjs
 ```
 
 Configure `TEST_BASE_URL` com a URL informada pelo Vite (padrão do teste: porta 5175).

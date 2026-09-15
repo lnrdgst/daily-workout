@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useContext, useEffect, useRef } from 'react';
+import { DialogSuppressionContext } from '@/components/DialogSuppressionContext';
 import type { ReactNode } from 'react';
 
 interface ConfirmDialogProps {
@@ -16,7 +17,7 @@ interface ConfirmDialogProps {
 }
 
 export const ConfirmDialog = ({
-  open,
+  open: requestedOpen,
   title,
   description,
   confirmLabel,
@@ -28,6 +29,8 @@ export const ConfirmDialog = ({
   onCancel,
   additionalAction,
 }: ConfirmDialogProps) => {
+  const suppressed = useContext(DialogSuppressionContext);
+  const open = requestedOpen && !suppressed;
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const onCancelRef = useRef(onCancel);
 

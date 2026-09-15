@@ -15,6 +15,8 @@ import { buildCardioHistoryEntry, configureIntervals, createCardioDraft, isShort
 import { isStrengthHistory } from '@/utils/sessions';
 import { undoCompletedSet } from '@/utils/setCompletion';
 import { loadRestAlertSettings } from '@/utils/restAlertSettings';
+import { buildRecoveredCardioHistoryEntry } from '@/utils/cardioRecovery';
+import type { CardioRecoveryInput } from '@/utils/cardioRecovery';
 import type { CardioData, CardioModality, CardioSessionDraft, ExerciseSetLog, RestTimerSessionState, SetCompletionTarget, WorkoutAppState, WorkoutId, WorkoutSessionHistory } from '@/types/workout';
 
 interface WorkoutStoreValue {
@@ -34,7 +36,7 @@ interface WorkoutStoreValue {
   undoSetCompleted: (target: SetCompletionTarget, cancelRestId?: string) => void;
   stopRestTimer: () => void;
   selectRestTimerPreset: (seconds: RestTimerSessionState['selectedSeconds']) => void;
-  finishWorkout: () => void;
+  finishWorkout: (recovery?: CardioRecoveryInput) => boolean;
   discardDraft: () => void;
   clearHistory: () => void;
   deleteHistoryEntry: (historyEntryId: string) => void;
@@ -294,17 +296,21 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
           };
         });
       },
-      finishWorkout: () => {
+      finishWorkout: (recovery) => {
         const current = stateRef.current;
         if (!current.activeDraft) {
-          return;
+          return false;
         }
 
+        if (recovery && current.activeDraft.type !== 'cardio') return false;
+        const recoveredEntry = recovery && current.activeDraft.type === 'cardio'
+          ? buildRecoveredCardioHistoryEntry(current.activeDraft, recovery) : null;
+        if (recovery && !recoveredEntry) return false;
         completedEndAtRef.current = stateRef.current.restTimer.endAt;
         const now = Date.now();
-        const entry = current.activeDraft.type === 'cardio'
+        const entry = recoveredEntry ?? (current.activeDraft.type === 'cardio'
           ? (isShortCardioSession(current.activeDraft, now) ? null : buildCardioHistoryEntry(current.activeDraft, now))
-          : buildHistoryEntry(current.activeDraft);
+          : buildHistoryEntry(current.activeDraft));
         const nextState: WorkoutAppState = {
           ...current,
           lastCompletedWorkoutId: current.activeDraft.type === 'cardio' ? current.lastCompletedWorkoutId : current.activeDraft.workoutId,
@@ -317,6 +323,7 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
         saveAppState(nextState);
         stateRef.current = nextState;
         setState(nextState);
+        return true;
       },
       discardDraft: () => {
         completedEndAtRef.current = stateRef.current.restTimer.endAt;

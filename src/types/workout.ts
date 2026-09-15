@@ -109,6 +109,7 @@ export interface CardioSessionDraft extends CardioData {
 }
 
 export interface CardioSessionHistory extends CardioData {
+  completionSource?: 'normal' | 'stale-recovery';
   type: 'cardio';
   id: string;
   modality: CardioModality;

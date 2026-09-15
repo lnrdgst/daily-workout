@@ -5,6 +5,8 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { MainNavigation } from '@/components/MainNavigation';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { SplashScreen } from '@/components/SplashScreen';
+import { StaleCardioRecovery } from '@/components/StaleCardioRecovery';
+import { DialogSuppressionContext } from '@/components/DialogSuppressionContext';
 import { useStaleWorkoutDetection } from '@/hooks/useStaleWorkoutDetection';
 import { useScreenWakeLock } from '@/hooks/useScreenWakeLock';
 import { useVisualViewportKeyboardOffset } from '@/hooks/useVisualViewportKeyboardOffset';
@@ -29,7 +31,8 @@ const AppShell = () => {
   const { state, finishWorkout, discardDraft } = useWorkoutStore();
   const [workoutSessionSettings] = useWorkoutSessionSettings();
   useScreenWakeLock(Boolean(state.activeDraft) && workoutSessionSettings.keepScreenAwake);
-  const { prompt: staleWorkoutPrompt, dismissPrompt } = useStaleWorkoutDetection(state.activeDraft?.type === 'cardio' ? null : state.activeDraft);
+  const { prompt, dismissPrompt } = useStaleWorkoutDetection(state.activeDraft);
+  const staleWorkoutPrompt = prompt?.type === 'strength' ? prompt : null;
   const keyboardOffset = useVisualViewportKeyboardOffset();
   const isActiveWorkoutPage = state.activeDraft !== null && location.pathname === getSessionPath(state.activeDraft);
   const showActiveWorkoutBar = Boolean(state.activeDraft) && !isActiveWorkoutPage;
@@ -73,7 +76,9 @@ const AppShell = () => {
         </header>
 
         <main className="flex-1">
-          <Outlet />
+          <DialogSuppressionContext.Provider value={prompt?.type === 'cardio'}>
+            <Outlet />
+          </DialogSuppressionContext.Provider>
         </main>
 
         {showActiveWorkoutBar && <ActiveWorkoutBar draft={state.activeDraft!} />}
@@ -86,6 +91,9 @@ const AppShell = () => {
         )}
       </div>
       {showSplash && <SplashScreen isExiting={isSplashExiting} />}
+      {prompt?.type === 'cardio' && state.activeDraft?.type === 'cardio' && (
+        <StaleCardioRecovery key={`${state.activeDraft.modality}-${state.activeDraft.startedAt}`} draft={state.activeDraft} onClose={dismissPrompt} />
+      )}
       <ConfirmDialog
         open={staleWorkoutPrompt !== null}
         title="Treino ainda em andamento"

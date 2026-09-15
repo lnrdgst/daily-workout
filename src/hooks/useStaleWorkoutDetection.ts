@@ -1,16 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import type { WorkoutSessionDraft } from '@/types/workout';
+import type { ActiveSession } from '@/types/workout';
 import { getWorkoutProgress } from '@/utils/workoutProgress';
+import { isStaleSession } from '@/utils/staleSession';
 
-const STALE_WORKOUT_DURATION_MS = 2 * 60 * 60 * 1000;
+export type StaleWorkoutPrompt = { type: 'strength'; shouldRegister: boolean } | { type: 'cardio' };
 
-export interface StaleWorkoutPrompt {
-  shouldRegister: boolean;
-}
+const getSessionKey = (draft: ActiveSession) => `${draft.type === 'cardio' ? `cardio-${draft.modality}` : draft.workoutId}-${draft.startedAt}`;
 
-const getSessionKey = (draft: WorkoutSessionDraft) => `${draft.workoutId}-${draft.startedAt}`;
-
-export const useStaleWorkoutDetection = (activeDraft: WorkoutSessionDraft | null) => {
+export const useStaleWorkoutDetection = (activeDraft: ActiveSession | null) => {
   const [prompt, setPrompt] = useState<StaleWorkoutPrompt | null>(null);
   const handledSessionRef = useRef<string | null>(null);
 
@@ -23,13 +20,12 @@ export const useStaleWorkoutDetection = (activeDraft: WorkoutSessionDraft | null
 
     const sessionKey = getSessionKey(activeDraft);
     const checkForStaleWorkout = () => {
-      const startedAt = new Date(activeDraft.startedAt).getTime();
-      if (Number.isNaN(startedAt) || Date.now() - startedAt < STALE_WORKOUT_DURATION_MS || handledSessionRef.current === sessionKey) {
+      if (!isStaleSession(activeDraft.startedAt) || handledSessionRef.current === sessionKey) {
         return;
       }
 
       handledSessionRef.current = sessionKey;
-      setPrompt({ shouldRegister: getWorkoutProgress(activeDraft).percentage >= 50 });
+      setPrompt(activeDraft.type === 'cardio' ? { type: 'cardio' } : { type: 'strength', shouldRegister: getWorkoutProgress(activeDraft).percentage >= 50 });
     };
 
     const handleVisibilityChange = () => {
