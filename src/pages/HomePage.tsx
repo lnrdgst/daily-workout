@@ -79,7 +79,7 @@ export const HomePage = () => {
   return (
     <>
       <div className="space-y-5">
-        <section className={`panel overflow-hidden p-5 ${showLastWorkout ? 'border-l-2 border-l-accent-500/70' : ''}`}>
+        <section className={`panel overflow-hidden p-5 ${!state.activeDraft && trainedToday ? 'border-l-2 border-l-accent-500/70' : ''}`}>
           <p className="break-words text-xs uppercase tracking-[0.3em] text-accent-300/80">{greetingLabel}</p>
           <h2 className="mt-2 text-3xl font-bold leading-tight">{welcomeTitle}</h2>
           {showLastWorkout ? (

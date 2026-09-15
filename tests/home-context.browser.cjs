@@ -54,13 +54,14 @@ async function main() {
       } else {
         assert.ok(!content.includes('Registre suas cargas'));
         assert.ok(!content.includes('Se quiser treinar novamente'));
-        assert.ok((await top().getAttribute('class')).includes('border-l-accent-500/70'));
         assert.ok(content.includes('Concluído'));
         if (name === 'yesterday') {
+          assert.ok(!(await top().getAttribute('class')).includes('border-l-accent-500/70'));
           assert.match(content, /Pronto para o próximo treino/);
           assert.match(content, /Seu último treino concluído/);
           assert.match(content, /14\/09\/2026 das 12:20 às 12:28/);
         } else {
+          assert.ok((await top().getAttribute('class')).includes('border-l-accent-500/70'));
           assert.match(content, /Treino de hoje concluído/);
           assert.match(content, /Hoje ·/);
           assert.ok(!content.includes('Seu último treino concluído'));
@@ -92,6 +93,7 @@ async function main() {
     await page.clock.fastForward(12 * 3600000); // local midnight, no reload
     await page.getByRole('heading', { name: 'Pronto para o próximo treino?', exact: true }).waitFor();
     assert.match(await top().innerText(), /15\/09\/2026 das 09:20 às 09:28/);
+    assert.ok(!(await top().getAttribute('class')).includes('border-l-accent-500/70'));
     assert.equal(await persisted(), before);
     assert.deepEqual(errors, []);
     console.log('PASS active session priority, automatic local midnight, storage unchanged, no browser errors');

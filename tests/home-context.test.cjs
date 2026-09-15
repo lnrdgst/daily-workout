@@ -113,13 +113,14 @@ test('one or multiple sessions today use the same completed copy and local time 
   }
 });
 
-test('yesterday keeps the full historical date format', () => {
-  const { text } = renderHome([session(yesterday)]);
+test('yesterday keeps the full historical date format without the today accent', () => {
+  const { text, html } = renderHome([session(yesterday)]);
   assert.ok(text.includes('Pronto para o próximo treino?'));
   assert.ok(text.includes('08/09/2026 das 09:05 às 09:58'));
   assert.ok(!text.includes('Hoje ·'));
   assert.ok(text.includes('Seu último treino concluído'));
   assert.ok(!text.includes(defaultDescription));
+  assert.ok(!html.includes('border-l-accent-500/70'));
 });
 
 test('active session takes priority even after a completion today', () => {
@@ -141,6 +142,7 @@ test('deleting today’s only entry and reopening tomorrow both restore the stan
   const reopened = renderHome([latest], null, tomorrow).text;
   assert.ok(reopened.includes('Pronto para o próximo treino?'));
   assert.ok(reopened.includes('09/09/2026 das 09:05 às 09:58'));
+  assert.ok(!renderHome([latest], null, tomorrow).html.includes('border-l-accent-500/70'));
 });
 
 test('completion date determines today for a session crossing midnight', () => {
