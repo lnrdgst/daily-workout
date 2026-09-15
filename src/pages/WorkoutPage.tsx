@@ -10,6 +10,7 @@ import { useRestTimerSettings } from '@/hooks/useRestTimerSettings';
 import { useWorkoutSessionSettings } from '@/hooks/useWorkoutSessionSettings';
 import { getWorkoutDurationSeconds, useWorkoutDuration } from '@/hooks/useWorkoutDuration';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
+import { useWorkoutPreviewNavigation } from '@/hooks/useWorkoutPreviewNavigation';
 import type { WorkoutProgressSummary } from '@/utils/workoutProgress';
 import { getWorkoutProgress } from '@/utils/workoutProgress';
 import { getSessionPath } from '@/utils/sessions';
@@ -54,6 +55,7 @@ export const WorkoutPage = () => {
     discardDraft,
     getPreviousExerciseSets,
   } = useWorkoutStore();
+  const backToWorkouts = useWorkoutPreviewNavigation(Boolean(state.activeDraft));
   const [restTimerSettings] = useRestTimerSettings();
   const [workoutSessionSettings] = useWorkoutSessionSettings();
   const [isFinishDialogOpen, setIsFinishDialogOpen] = useState(false);
@@ -214,7 +216,7 @@ export const WorkoutPage = () => {
             ))}
           </section>
 
-          <button type="button" onClick={() => navigate('/')} className="touch-button w-full bg-white/10 text-base text-zinc-100">
+          <button type="button" onClick={backToWorkouts} className="touch-button w-full bg-white/10 text-base text-zinc-100">
             Voltar para treinos
           </button>
         </>

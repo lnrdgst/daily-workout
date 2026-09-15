@@ -6,6 +6,7 @@ import { MainNavigation } from '@/components/MainNavigation';
 import { cardioModalities, isCardioModality } from '@/data/cardio';
 import { useWorkoutDuration } from '@/hooks/useWorkoutDuration';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
+import { useWorkoutPreviewNavigation } from '@/hooks/useWorkoutPreviewNavigation';
 import { getSessionPath } from '@/utils/sessions';
 import { isShortCardioSession } from '@/utils/cardioSession';
 import type { CardioData } from '@/types/workout';
@@ -18,6 +19,7 @@ export const CardioPage = () => {
   const { modality } = useParams();
   const navigate = useNavigate();
   const { state, startCardio, updateCardio, finishWorkout, discardDraft } = useWorkoutStore();
+  const backToWorkouts = useWorkoutPreviewNavigation(Boolean(state.activeDraft));
   const draft = state.activeDraft?.type === 'cardio' && state.activeDraft.modality === modality ? state.activeDraft : null;
   const duration = useWorkoutDuration(draft?.startedAt);
   const [dialog, setDialog] = useState<'finish' | 'discard' | 'short' | null>(null);
@@ -48,6 +50,11 @@ export const CardioPage = () => {
           </>
         )}
       </section>
+      {!draft && (
+        <button type="button" onClick={backToWorkouts} className="touch-button w-full bg-white/10 text-base text-zinc-100">
+          Voltar para treinos
+        </button>
+      )}
       {draft && (
         <>
           <CardioIntervals key={draft.startedAt} draft={draft} />

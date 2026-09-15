@@ -123,6 +123,7 @@ test('actual finish handler treats 20-second prefills as accidental and explicit
         react: { useState: () => { const index = stateIndex++; return [false, (value) => { dialogs[index] = value; }]; } },
         'react-router-dom': { Link: component, useNavigate: () => () => {}, useParams: () => ({ id: 'A' }) },
         '@/hooks/useWorkoutStore': { useWorkoutStore: () => ({ state: { activeDraft: draft }, getPreviousExerciseSets: () => null }) },
+        '@/hooks/useWorkoutPreviewNavigation': { useWorkoutPreviewNavigation: () => () => {} },
         '@/hooks/useRestTimerSettings': { useRestTimerSettings: () => [{}] },
         '@/hooks/useWorkoutSessionSettings': { useWorkoutSessionSettings: () => [{}] },
         '@/hooks/useWorkoutDuration': { ...loadModule('src/hooks/useWorkoutDuration.ts'), useWorkoutDuration: () => '00:20' },

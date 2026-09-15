@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
+import type { RefObject } from 'react';
 import { ChevronDown, ChevronRight, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { workouts } from '@/data/workouts';
 import { cardioModalities } from '@/data/cardio';
 
-export const WorkoutSelector = ({ onClose }: { onClose: () => void }) => {
+export const WorkoutSelector = ({ onClose, returnFocusRef }: { onClose: () => void; returnFocusRef: RefObject<HTMLButtonElement> }) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const cardioCount = Object.keys(cardioModalities).length;
   const [openCategory, setOpenCategory] = useState<'cardio' | 'strength' | null>('strength');
@@ -12,14 +13,14 @@ export const WorkoutSelector = ({ onClose }: { onClose: () => void }) => {
     setOpenCategory((current) => current === category ? null : category);
 
   useEffect(() => {
-    const previousFocus = document.activeElement;
+    const previousFocus = returnFocusRef.current ?? document.activeElement;
     const dialog = dialogRef.current;
     dialog?.showModal();
     return () => {
       dialog?.close();
       if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus();
     };
-  }, []);
+  }, [returnFocusRef]);
 
   return (
     <dialog ref={dialogRef} aria-labelledby="workout-selector-title" onCancel={onClose}
@@ -59,7 +60,7 @@ export const WorkoutSelector = ({ onClose }: { onClose: () => void }) => {
           <div id="strength-category-content" role="region" aria-labelledby="strength-category-heading" hidden={openCategory !== 'strength'}>
             <div className="grid gap-2">
               {workouts.map((workout) => (
-                <Link key={workout.id} to={`/workout/${workout.id}`} onClick={onClose}
+                <Link key={workout.id} to={`/workout/${workout.id}`} state={{ origin: 'workout-picker' }} onClick={onClose}
                   className="touch-button flex-col items-start bg-white/5 text-zinc-100">
                   <span>{workout.name}</span>
                   <span className="text-sm font-normal text-zinc-400">{workout.exercises.length} {workout.exercises.length === 1 ? 'exercício' : 'exercícios'}</span>
@@ -83,7 +84,7 @@ export const WorkoutSelector = ({ onClose }: { onClose: () => void }) => {
           <div id="cardio-category-content" role="region" aria-labelledby="cardio-category-heading" hidden={openCategory !== 'cardio'}>
             <div className="panel grid gap-2 p-4">
             {Object.entries(cardioModalities).map(([modality, name]) => (
-              <Link key={modality} to={`/cardio/${modality}`} onClick={onClose} className="touch-button justify-start bg-white/5 text-zinc-100">
+              <Link key={modality} to={`/cardio/${modality}`} state={{ origin: 'workout-picker' }} onClick={onClose} className="touch-button justify-start bg-white/5 text-zinc-100">
                 {name}
               </Link>
             ))}

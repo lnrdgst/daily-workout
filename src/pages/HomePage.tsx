@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { workouts } from '@/data/workouts';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
@@ -16,7 +16,21 @@ import { WorkoutProgress } from '@/components/WorkoutProgress';
 export const HomePage = () => {
   const { state } = useWorkoutStore();
   const [userPreferences] = useUserPreferences();
-  const [selectorOpen, setSelectorOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const selectorButtonRef = useRef<HTMLButtonElement>(null);
+  const reopenWorkoutPicker = location.state?.reopenWorkoutPicker === true;
+  const hasActiveSession = Boolean(state.activeDraft);
+  const [selectorOpen, setSelectorOpen] = useState(() => reopenWorkoutPicker && !hasActiveSession);
+
+  useEffect(() => {
+    if (!reopenWorkoutPicker) return;
+    setSelectorOpen(!hasActiveSession);
+    navigate(location.pathname + location.search + location.hash, {
+      replace: true,
+      state: { ...location.state, reopenWorkoutPicker: false },
+    });
+  }, [reopenWorkoutPicker, hasActiveSession, location, navigate]);
   const duration = useWorkoutDuration(state.activeDraft?.startedAt);
   const nextWorkout = getNextStrengthWorkout(state.history, workouts);
   const lastWorkout = getLatestSession(state.history);
@@ -68,10 +82,10 @@ export const HomePage = () => {
                 <p className="text-xs uppercase tracking-[0.24em] text-accent-300">Próximo treino</p>
                 <h3 className="break-words text-2xl font-bold">{nextWorkout.name}</h3>
                 <p className="text-sm text-zinc-400">{nextWorkout.exercises.length} {nextWorkout.exercises.length === 1 ? 'exercício' : 'exercícios'}</p>
-                <Link to={`/workout/${nextWorkout.id}`} className="touch-button w-full bg-accent-500 text-zinc-950">Ver treino {nextWorkout.id}</Link>
+                <Link to={`/workout/${nextWorkout.id}`} state={{ origin: 'home-next-workout' }} className="touch-button w-full bg-accent-500 text-zinc-950">Ver treino {nextWorkout.id}</Link>
               </section>
             )}
-            <button type="button" onClick={() => setSelectorOpen(true)} aria-haspopup="dialog"
+            <button ref={selectorButtonRef} type="button" onClick={() => setSelectorOpen(true)} aria-haspopup="dialog"
               className="touch-button w-full border border-accent-500 bg-white/5 text-accent-500">Fazer outro treino</button>
           </>
         )}
@@ -121,7 +135,7 @@ export const HomePage = () => {
         </section>
 
       </div>
-      {!state.activeDraft && selectorOpen && <WorkoutSelector onClose={() => setSelectorOpen(false)} />}
+      {!state.activeDraft && selectorOpen && <WorkoutSelector returnFocusRef={selectorButtonRef} onClose={() => setSelectorOpen(false)} />}
     </>
   );
 };

@@ -52,7 +52,7 @@ function renderHome(history = [], activeDraft = null, now = today, displayName =
     '@/hooks/useWorkoutStore': { useWorkoutStore: () => ({ state }) },
     '@/hooks/useUserPreferences': { useUserPreferences: () => [{ displayName }] },
     '@/components/WorkoutProgress': { WorkoutProgress: () => React.createElement('div', null, 'Progresso ativo') },
-    'react-router-dom': { Link: ({ to, children, ...props }) => React.createElement('a', { href: to, ...props }, children) },
+    'react-router-dom': { useLocation: () => ({ pathname: '/', search: '', hash: '', state: null }), useNavigate: () => () => {}, Link: ({ to, state, children, ...props }) => React.createElement('a', { href: to, 'data-origin': state?.origin, ...props }, children) },
     ...dataMocks,
   };
   const { HomePage } = loadModule('src/pages/HomePage.tsx', mocks, Clock);
@@ -63,7 +63,7 @@ function renderHome(history = [], activeDraft = null, now = today, displayName =
 
 function renderSelector(dataMocks = {}) {
   const { WorkoutSelector } = loadModule('src/components/WorkoutSelector.tsx', {
-    'react-router-dom': { Link: ({ to, children, ...props }) => React.createElement('a', { href: to, ...props }, children) },
+    'react-router-dom': { useLocation: () => ({ pathname: '/', search: '', hash: '', state: null }), useNavigate: () => () => {}, Link: ({ to, state, children, ...props }) => React.createElement('a', { href: to, 'data-origin': state?.origin, ...props }, children) },
     ...dataMocks,
   });
   const html = renderToStaticMarkup(React.createElement(WorkoutSelector, { onClose() {} }));
