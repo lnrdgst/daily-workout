@@ -31,7 +31,6 @@ const today = new Date(2026, 8, 9, 14);
 const yesterday = new Date(2026, 8, 8, 14);
 const tomorrow = new Date(2026, 8, 10, 14);
 const defaultDescription = 'Registre suas cargas, repetições e acompanhe sua evolução a cada sessão.';
-const completedDescription = 'Se quiser treinar novamente, seus próximos treinos continuam disponíveis abaixo.';
 
 function session(date, workoutId = 'B') {
   const startedAt = new Date(date);
@@ -75,7 +74,9 @@ test('no recorded session preserves the standard greeting, description and worko
   assert.ok(text.includes('Boa tarde, Leonardo'));
   assert.ok(text.includes('Pronto para o próximo treino?'));
   assert.ok(text.includes(defaultDescription));
-  assert.ok(text.includes('Você ainda não concluiu nenhum treino.'));
+  assert.ok(!text.includes('Último treino concluído'));
+  assert.ok(!html.includes('border-l-accent-500/70'));
+  assert.ok(!text.includes('Concluído'));
   assert.ok(html.includes('href="/workout/A"'));
   assert.ok(!html.includes('category-heading'));
 });
@@ -103,7 +104,8 @@ test('one or multiple sessions today use the same completed copy and local time 
   for (const history of [[session(today)], [session(today, 'A'), session(today)]]) {
     const { text, html } = renderHome(history);
     assert.ok(text.includes('Treino de hoje concluído.'));
-    assert.ok(text.includes(completedDescription));
+    assert.ok(!text.includes(defaultDescription));
+    assert.ok(!text.includes('Se quiser treinar novamente'));
     assert.ok(text.includes('Hoje · 09:05 às 09:58'));
     assert.ok(text.includes('Concluído'));
     assert.ok(html.includes('border-l-accent-500/70'));
@@ -116,6 +118,8 @@ test('yesterday keeps the full historical date format', () => {
   assert.ok(text.includes('Pronto para o próximo treino?'));
   assert.ok(text.includes('08/09/2026 das 09:05 às 09:58'));
   assert.ok(!text.includes('Hoje ·'));
+  assert.ok(text.includes('Seu último treino concluído'));
+  assert.ok(!text.includes(defaultDescription));
 });
 
 test('active session takes priority even after a completion today', () => {
@@ -186,8 +190,23 @@ test('global cardio history and next strength coexist without advancing ABC', ()
   assert.ok(text.includes('Bike ergométrica'));
   assert.ok(text.includes('Treino de hoje concluído.'));
   assert.ok(html.includes('href="/workout/B"'));
-  assert.ok(text.indexOf('Próximo treino') < text.indexOf('Último treino concluído'));
-  assert.ok(text.indexOf('Último treino concluído') < text.indexOf('Sequência ABC'));
+  assert.ok(text.indexOf('Bike ergométrica') < text.indexOf('Próximo treino'));
+  assert.ok(!text.includes('Último treino concluído'));
+});
+
+test('unified first card contains only the most recent completion and no nested or separate last card', () => {
+  const running = { ...cardio, workoutName: 'Corrida', modality: 'running' };
+  for (const history of [[session(yesterday), running], [running, session(today)], [session(today), running]]) {
+    const { html } = renderHome(history);
+    const sections = html.match(/<section\b[^>]*>[\s\S]*?<\/section>/g);
+    assert.equal(sections.length, 3);
+    assert.ok(sections[0].includes('Corrida'));
+    assert.ok(!sections[0].includes('Treino B'));
+    assert.equal((sections[0].match(/Concluído/g) || []).length, 1);
+    assert.equal((sections[0].match(/class="panel/g) || []).length, 1);
+    assert.ok(sections[1].includes('href="/workout/C"'));
+    assert.ok(sections[2].includes('Sequência ABC'));
+  }
 });
 
 test('both active types prioritize resume and hide the selector and next workout', () => {

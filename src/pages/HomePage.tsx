@@ -22,6 +22,31 @@ export const HomePage = () => {
   const reopenWorkoutPicker = location.state?.reopenWorkoutPicker === true;
   const hasActiveSession = Boolean(state.activeDraft);
   const [selectorOpen, setSelectorOpen] = useState(() => reopenWorkoutPicker && !hasActiveSession);
+  const [, refreshClock] = useState(0);
+
+  useEffect(() => {
+    let timeout: number;
+    const scheduleMidnight = () => {
+      const current = new Date();
+      const midnight = new Date(current);
+      midnight.setHours(24, 0, 0, 0);
+      timeout = window.setTimeout(updateClock, midnight.getTime() - current.getTime());
+    };
+    const updateClock = () => {
+      window.clearTimeout(timeout);
+      refreshClock((version) => version + 1);
+      scheduleMidnight();
+    };
+    const onVisibility = () => { if (document.visibilityState === 'visible') updateClock(); };
+    scheduleMidnight();
+    window.addEventListener('focus', updateClock);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.clearTimeout(timeout);
+      window.removeEventListener('focus', updateClock);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
 
   useEffect(() => {
     if (!reopenWorkoutPicker) return;
@@ -49,19 +74,31 @@ export const HomePage = () => {
     : trainedToday
       ? 'Treino de hoje concluído.'
       : 'Pronto para o próximo treino?';
-  const welcomeDescription = !state.activeDraft && trainedToday
-    ? 'Se quiser treinar novamente, seus próximos treinos continuam disponíveis abaixo.'
-    : 'Registre suas cargas, repetições e acompanhe sua evolução a cada sessão.';
+  const showLastWorkout = !state.activeDraft && lastWorkout !== null;
 
   return (
     <>
       <div className="space-y-5">
-        <section className="panel overflow-hidden p-5">
+        <section className={`panel overflow-hidden p-5 ${showLastWorkout ? 'border-l-2 border-l-accent-500/70' : ''}`}>
           <p className="break-words text-xs uppercase tracking-[0.3em] text-accent-300/80">{greetingLabel}</p>
           <h2 className="mt-2 text-3xl font-bold leading-tight">{welcomeTitle}</h2>
-          <p className="mt-3 text-sm text-zinc-400">
-            {welcomeDescription}
-          </p>
+          {showLastWorkout ? (
+            <div className="mt-3">
+              {!trainedToday && <p className="mb-1 text-xs text-zinc-500">Seu último treino concluído</p>}
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                <h3 className="min-w-0 break-words text-lg font-bold">{lastWorkout.workoutName}</h3>
+                <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-accent-300">
+                  <Check size={14} aria-hidden="true" />
+                  Concluído
+                </span>
+              </div>
+              <p className="text-sm text-zinc-400">
+                {formatLastWorkoutTiming(lastWorkout.startedAt, lastWorkout.finishedAt, now)}
+              </p>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-zinc-400">Registre suas cargas, repetições e acompanhe sua evolução a cada sessão.</p>
+          )}
         </section>
 
         {state.activeDraft ? (
@@ -88,28 +125,6 @@ export const HomePage = () => {
             <button ref={selectorButtonRef} type="button" onClick={() => setSelectorOpen(true)} aria-haspopup="dialog"
               className="touch-button w-full border border-accent-500 bg-white/5 text-accent-500">Fazer outro treino</button>
           </>
-        )}
-
-        {!state.activeDraft && (
-          <section className={`panel p-5 ${lastWorkout ? 'border-l-2 border-l-accent-500/70' : ''}`}>
-            <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Último treino concluído</p>
-            {lastWorkout ? (
-              <div className="mt-2">
-                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                  <h3 className="min-w-0 break-words text-lg font-bold">{lastWorkout.workoutName}</h3>
-                  <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-accent-300">
-                    <Check size={14} aria-hidden="true" />
-                    Concluído
-                  </span>
-                </div>
-                <p className="text-sm text-zinc-400">
-                  {formatLastWorkoutTiming(lastWorkout.startedAt, lastWorkout.finishedAt, now)}
-                </p>
-              </div>
-            ) : (
-              <p className="mt-2 text-sm text-zinc-400">Você ainda não concluiu nenhum treino.</p>
-            )}
-          </section>
         )}
 
         <section className="panel p-5">

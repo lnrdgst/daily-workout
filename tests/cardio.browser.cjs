@@ -398,7 +398,7 @@ async function main() {
     assert.equal((await state()).history.at(-1).intervals, undefined);
     assert.equal((await state()).history.at(-1).distanceKm, 4.5);
     await page.goto(baseURL);
-    const lastHome = page.locator('section').filter({ has: page.getByText('Último treino concluído', { exact: true }) });
+    const lastHome = page.locator('main section').first();
     const displayedTime = await lastHome.locator('p').last().innerText();
     assert.match(displayedTime, /^Hoje · \d{2}:\d{2} às \d{2}:\d{2}$/);
     await page.goto(`${baseURL}/settings`);
