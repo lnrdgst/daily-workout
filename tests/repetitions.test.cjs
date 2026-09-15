@@ -35,8 +35,28 @@ const history = [{ exercises: [{ exerciseId: workout.exercises[0].id,
 
 function descendants(node) {
   if (!node || typeof node !== 'object') return [];
+  if (node.type?.name === 'IntegerStepper') return descendants(node.type(node.props));
   return [node, ...[node.props?.children].flat(Infinity).flatMap(descendants)];
 }
+
+test('shared duration stepper clamps buttons, keeps edits until blur and has no hours ceiling', () => {
+  const { IntegerStepper } = loadModule('src/components/IntegerStepper.tsx', { react: { useId: () => 'duration-test' } });
+  let value = '0';
+  const render = (max) => descendants(IntegerStepper({ label: 'Minutos', decreaseLabel: 'Diminuir minutos', increaseLabel: 'Aumentar minutos', value, max, onChange: (next) => { value = next; } }));
+  const input = (max) => render(max).find((node) => node.type === 'input');
+  const click = (label, max) => render(max).find((node) => node.props?.['aria-label'] === label).props.onClick();
+  click('Diminuir minutos', 59); assert.equal(value, '0');
+  click('Aumentar minutos', 59); assert.equal(value, '1');
+  value = '59'; click('Aumentar minutos', 59); assert.equal(value, '59');
+  input(59).props.onChange({ target: { value: '80' } }); assert.equal(value, '80');
+  input(59).props.onBlur(); assert.equal(value, '59');
+  input(59).props.onChange({ target: { value: '' } }); input(59).props.onBlur(); assert.equal(value, '');
+  click('Aumentar minutos', 59); assert.equal(value, '1');
+  value = '2'; click('Aumentar minutos'); assert.equal(value, '3');
+  value = '250'; input().props.onBlur(); assert.equal(value, '250');
+  assert.equal(input().props.type, 'text');
+  assert.equal(input().props.inputMode, 'numeric');
+});
 
 function row(initialReps) {
   let set = { reps: initialReps, load: '', completed: false };

@@ -69,7 +69,27 @@ async function main() {
     assert.deepEqual(await state(), initial);
     await action('Encerrar e registrar');
     assert.equal(await page.getByLabel('Minutos', { exact: true }).inputValue(), '');
-    for (const [hours, minutes] of [['0', '0'], ['0', '60'], ['5', '0'], ['', '40']]) {
+    const hoursInput = page.getByLabel('Horas', { exact: true });
+    const minutesInput = page.getByLabel('Minutos', { exact: true });
+    await page.getByRole('button', { name: 'Diminuir horas', exact: true }).click();
+    assert.equal(await hoursInput.inputValue(), '0');
+    await page.getByRole('button', { name: 'Aumentar minutos', exact: true }).click();
+    assert.equal(await minutesInput.inputValue(), '1');
+    await fill('2', '59');
+    await page.getByRole('button', { name: 'Aumentar horas', exact: true }).click();
+    assert.equal(await hoursInput.inputValue(), '3');
+    await page.getByRole('button', { name: 'Aumentar minutos', exact: true }).click();
+    assert.equal(await minutesInput.inputValue(), '59');
+    await minutesInput.fill('80');
+    assert.equal(await minutesInput.inputValue(), '80');
+    assert.equal(await minutesInput.evaluate((el) => el === document.activeElement), true);
+    await hoursInput.focus();
+    assert.equal(await minutesInput.inputValue(), '59');
+    await minutesInput.fill('');
+    await minutesInput.pressSequentially('40');
+    assert.equal(await minutesInput.inputValue(), '40');
+    assert.equal(await minutesInput.evaluate((el) => el === document.activeElement), true);
+    for (const [hours, minutes] of [['0', '0'], ['5', '0'], ['', '40']]) {
       await fill(hours, minutes); await action('Registrar atividade');
       await page.getByRole('alert').waitFor();
       assert.deepEqual(await state(), initial);

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { IntegerStepper } from '@/components/IntegerStepper';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
 import { validateCardioRecovery } from '@/utils/cardioRecovery';
 import type { CardioSessionDraft } from '@/types/workout';
@@ -36,14 +37,12 @@ export const StaleCardioRecovery = ({ draft, onClose }: { draft: CardioSessionDr
     description="Informe aproximadamente a duração real da atividade."
     cancelLabel="Cancelar" onCancel={() => { setStage('decision'); setError(''); }}
     confirmLabel="Registrar atividade" onConfirm={confirm}>
-    <div className="mt-4 grid grid-cols-2 gap-3">
+    <div className="mt-4 grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
       {([['Horas', hours, setHours, undefined], ['Minutos', minutes, setMinutes, 59]] as const).map(([label, value, setValue, max]) => (
-        <label key={label} className="min-w-0 text-sm text-zinc-300">{label}
-          <input type="number" inputMode="numeric" min="0" max={max} step="1" value={value}
-            aria-describedby={error ? 'cardio-recovery-error' : undefined} aria-invalid={Boolean(error)}
-            onChange={(event) => { setValue(event.target.value); setError(''); }}
-            className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base outline-none focus:border-accent-400" />
-        </label>
+        <IntegerStepper key={label} label={label} value={value} max={max}
+          decreaseLabel={`Diminuir ${label.toLowerCase()}`} increaseLabel={`Aumentar ${label.toLowerCase()}`}
+          describedBy={error ? 'cardio-recovery-error' : undefined} invalid={Boolean(error)}
+          onChange={(next) => { setValue(next); setError(''); }} />
       ))}
     </div>
     {error && <p id="cardio-recovery-error" role="alert" className="mt-3 text-sm text-danger">{error}</p>}
