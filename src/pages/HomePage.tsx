@@ -116,7 +116,7 @@ export const HomePage = () => {
           <>
             {nextWorkout && (
               <section className="panel space-y-3 border-accent-500/30 p-5">
-                <p className="text-xs uppercase tracking-[0.24em] text-accent-300">Próximo treino</p>
+                <p className="text-xs uppercase tracking-[0.24em] text-accent-300">Próximo treino de musculação</p>
                 <h3 className="break-words text-2xl font-bold">{nextWorkout.name}</h3>
                 <p className="text-sm text-zinc-400">{nextWorkout.exercises.length} {nextWorkout.exercises.length === 1 ? 'exercício' : 'exercícios'}</p>
                 <Link to={`/workout/${nextWorkout.id}`} state={{ origin: 'home-next-workout' }} className="touch-button w-full bg-accent-500 text-zinc-950">Ver treino {nextWorkout.id}</Link>
