@@ -5,6 +5,7 @@ import { ExerciseCard } from '@/components/ExerciseCard';
 import { ExerciseIcon } from '@/components/ExerciseIcon';
 import { MainNavigation } from '@/components/MainNavigation';
 import { RestTimer } from '@/components/RestTimer';
+import { ViewBackButton } from '@/components/ViewBackButton';
 import { workoutsById } from '@/data/workouts';
 import { useRestTimerSettings } from '@/hooks/useRestTimerSettings';
 import { useWorkoutSessionSettings } from '@/hooks/useWorkoutSessionSettings';
@@ -118,6 +119,7 @@ export const WorkoutPage = () => {
 
   return (
     <div className={`space-y-4 ${isTraining ? 'pb-[calc(6.5rem+env(safe-area-inset-bottom))]' : 'pb-8'}`}>
+      {!isTraining && <ViewBackButton onClick={backToWorkouts} />}
       {isTraining && (
         <MainNavigation className="grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-surface-900/80 p-2 shadow-glow backdrop-blur" />
       )}
@@ -216,9 +218,6 @@ export const WorkoutPage = () => {
             ))}
           </section>
 
-          <button type="button" onClick={backToWorkouts} className="touch-button w-full bg-white/10 text-base text-zinc-100">
-            Voltar para treinos
-          </button>
         </>
       )}
 

@@ -1,6 +1,7 @@
 /* global process, console, window, document, localStorage, sessionStorage */
 const assert = require('node:assert/strict');
 const path = require('node:path');
+const fs = require('node:fs');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || path.resolve('dist/cardio-qa/node_modules/playwright'));
 const baseURL = process.env.TEST_BASE_URL || 'http://127.0.0.1:5175';
 
@@ -28,7 +29,17 @@ async function main() {
     assert.equal((await routeState()).origin, 'workout-picker');
   };
   const back = async (reopen) => {
-    await button('Voltar para treinos').click();
+    assert.equal(await button('Voltar para treinos').count(), 0);
+    const control = button('Voltar');
+    assert.equal(await control.count(), 1);
+    const bounds = await control.boundingBox();
+    const brand = await page.locator('header').boundingBox();
+    const firstCard = await page.locator('main section').first().boundingBox();
+    assert.ok(bounds.height >= 44 && bounds.width >= 44, 'comfortable mobile touch target');
+    assert.ok(bounds.y >= brand.y + brand.height && bounds.y + bounds.height <= firstCard.y, 'return belongs between brand and first card');
+    assert.equal(await control.evaluate((element) => window.getComputedStyle(element).backgroundColor), 'rgba(0, 0, 0, 0)');
+    assert.equal(await control.evaluate((element) => window.getComputedStyle(element).borderTopWidth), '0px');
+    await control.click();
     await page.waitForURL(`${baseURL}/`);
     if (reopen) {
       await dialog.waitFor();
@@ -46,6 +57,8 @@ async function main() {
     await page.goto(baseURL);
     const initial = await persisted();
     await page.getByRole('link', { name: 'Ver treino A', exact: true }).click();
+    fs.mkdirSync('dist/cardio-qa/artifacts', { recursive: true });
+    await page.screenshot({ path: 'dist/cardio-qa/artifacts/preview-back-strength-320.png', animations: 'disabled' });
     assert.equal((await routeState()).origin, 'home-next-workout');
     await back(false);
     assert.deepEqual(await persisted(), initial);
@@ -69,6 +82,7 @@ async function main() {
       await openSelector();
       await page.locator('#cardio-category-heading').click();
       await select(`/cardio/${modality}`);
+      if (modality === 'stationary-bike') await page.screenshot({ path: 'dist/cardio-qa/artifacts/preview-back-cardio-320.png', animations: 'disabled' });
       await back(true);
       await page.keyboard.press('Escape');
       assert.equal(await dialog.count(), 0);
@@ -95,6 +109,7 @@ async function main() {
       assert.ok(active);
       assert.equal('origin' in active, false);
       assert.equal(await button('Voltar para treinos').count(), 0);
+      assert.equal(await button('Voltar').count(), 0);
       await page.getByRole('link', { name: 'Treinos', exact: true }).click();
       assert.equal(await dialog.count(), 0);
       assert.equal(await button('Fazer outro treino').count(), 0);

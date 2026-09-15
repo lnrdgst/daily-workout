@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CardioIntervals } from '@/components/CardioIntervals';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { MainNavigation } from '@/components/MainNavigation';
+import { ViewBackButton } from '@/components/ViewBackButton';
 import { cardioModalities, isCardioModality } from '@/data/cardio';
 import { useWorkoutDuration } from '@/hooks/useWorkoutDuration';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
@@ -29,6 +30,7 @@ export const CardioPage = () => {
 
   return (
     <div className="space-y-4 pb-8">
+      {!draft && <ViewBackButton onClick={backToWorkouts} />}
       {draft && <MainNavigation className="grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-surface-900/80 p-2" />}
       <section className={draft ? 'panel sticky top-2 z-10 bg-zinc-950/95 p-4' : 'panel p-5'}>
         {draft ? (
@@ -50,11 +52,6 @@ export const CardioPage = () => {
           </>
         )}
       </section>
-      {!draft && (
-        <button type="button" onClick={backToWorkouts} className="touch-button w-full bg-white/10 text-base text-zinc-100">
-          Voltar para treinos
-        </button>
-      )}
       {draft && (
         <>
           <CardioIntervals key={draft.startedAt} draft={draft} />
