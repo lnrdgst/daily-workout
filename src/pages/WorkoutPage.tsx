@@ -59,7 +59,7 @@ export const WorkoutPage = () => {
   const backToWorkouts = useWorkoutPreviewNavigation(Boolean(state.activeDraft));
   const [restTimerSettings] = useRestTimerSettings();
   const [workoutSessionSettings] = useWorkoutSessionSettings();
-  const [isFinishDialogOpen, setIsFinishDialogOpen] = useState(false);
+  const [finishDialogOrigin, setFinishDialogOrigin] = useState<'manual' | 'automatic' | null>(null);
   const [isAccidentalFinishDialogOpen, setIsAccidentalFinishDialogOpen] = useState(false);
   const [undoTarget, setUndoTarget] = useState<{ target: SetCompletionTarget; restId: string | null } | null>(null);
 
@@ -87,7 +87,7 @@ export const WorkoutPage = () => {
       return;
     }
 
-    setIsFinishDialogOpen(true);
+    setFinishDialogOrigin('manual');
   };
 
   const handleSetCompletedToggle = (exerciseId: string, setIndex: number, isCurrentlyCompleted: boolean) => {
@@ -97,9 +97,15 @@ export const WorkoutPage = () => {
       setUndoTarget({ target, restId: getRelatedAutomaticRestId(state, target) });
       return;
     }
+    const willCompleteWorkout = activeDraft.exercises.every((exercise) => exercise.sets.every((set, currentIndex) =>
+      (exercise.exerciseId === exerciseId && currentIndex === setIndex) || set.completed,
+    ));
+
     toggleSetCompleted(exerciseId, setIndex);
 
-    if (workoutSessionSettings.autoStartRestTimer) {
+    if (willCompleteWorkout) {
+      setFinishDialogOrigin('automatic');
+    } else if (workoutSessionSettings.autoStartRestTimer) {
       startRestTimer(restTimerSettings.defaultRestSeconds, target);
     }
   };
@@ -233,16 +239,18 @@ export const WorkoutPage = () => {
       />
 
       <ConfirmDialog
-        open={isFinishDialogOpen}
-        title="Finalizar treino?"
+        open={finishDialogOrigin !== null}
+        title={finishDialogOrigin === 'automatic' ? 'Treino concluído' : 'Finalizar treino?'}
         description={
-          progress?.percentage === 100
+          finishDialogOrigin === 'automatic'
+            ? 'Você finalizou todas as séries. Deseja encerrar o treino?'
+            : progress?.percentage === 100
             ? 'Bom trabalho. Confirma a finalização deste treino?'
             : 'Ainda existem exercícios ou séries não concluídos. Deseja finalizar o treino mesmo assim?'
         }
         cancelLabel="Voltar ao treino"
         confirmLabel="Finalizar treino"
-        onCancel={() => setIsFinishDialogOpen(false)}
+        onCancel={() => setFinishDialogOrigin(null)}
         onConfirm={() => {
           finishWorkout();
           navigate('/history');

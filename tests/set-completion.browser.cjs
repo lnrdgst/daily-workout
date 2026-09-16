@@ -1,4 +1,4 @@
-/* global process, console, window, document, navigator, localStorage, sessionStorage */
+/* global process, console, window, document, navigator, localStorage, sessionStorage, Event */
 const assert = require('node:assert/strict');
 const path = require('node:path');
 const fs = require('node:fs');
@@ -133,6 +133,75 @@ async function main() {
     assert.equal((await state()).restTimer.automaticSource, undefined);
     assert.deepEqual(errors, []);
     console.log('PASS navigation, reload, persisted ownership and persisted undo without browser exceptions');
+
+    await reset(false);
+    const visualSeries = () => firstExercise().locator('div.rounded-2xl').filter({ has: page.getByText(/^Série \d$/) });
+    assert.match(await visualSeries().nth(0).getAttribute('class'), /border-white\/10/);
+    await mark();
+    assert.match(await visualSeries().nth(0).getAttribute('class'), /border-accent-500/);
+    assert.match(await visualSeries().nth(1).getAttribute('class'), /border-white\/10/);
+    await page.screenshot({ path: 'dist/cardio-qa/artifacts/completed-series-320.png', fullPage: true, animations: 'disabled' });
+    await page.getByLabel('Carga').first().fill('40');
+    assert.equal((await state()).activeDraft.exercises[0].sets[0].load, '40');
+    await mark();
+    assert.match(await visualSeries().nth(1).getAttribute('class'), /border-accent-500/);
+    await mark();
+    await page.clock.runFor(600);
+    assert.equal(await firstExercise().getByRole('button', { name: /Concluído.*3\/3 séries/ }).getAttribute('aria-expanded'), 'false');
+    await firstExercise().getByRole('button', { name: /Concluído.*3\/3 séries/ }).click();
+    await firstExercise().getByRole('button', { name: 'Feita', exact: true }).first().click();
+    await action('Desmarcar série');
+    assert.match(await visualSeries().nth(0).getAttribute('class'), /border-white\/10/);
+    assert.match(await visualSeries().nth(1).getAttribute('class'), /border-accent-500/);
+    console.log('PASS 0/3, 1/3, 2/3, 3/3 visual states, editable completed input and undo');
+
+    await reset();
+    await page.evaluate(() => {
+      const saved = JSON.parse(localStorage.getItem('daily-workout-state'));
+      const draft = saved.activeDraft;
+      draft.exercises.forEach((exercise) => exercise.sets.forEach((set) => { set.completed = true; }));
+      draft.exercises[0].sets[0].completed = false;
+      draft.exercises.at(-1).sets.at(-1).completed = false;
+      saved.restTimer = { status: 'ready', selectedSeconds: 90, endAt: null };
+      localStorage.setItem('daily-workout-state', JSON.stringify(saved));
+    });
+    await page.reload();
+    const lastExerciseName = (await state()).activeDraft.exercises.at(-1).exerciseId;
+    const lastExercise = page.locator('article').filter({ has: page.getByRole('heading') }).last();
+    await lastExercise.getByRole('button', { name: 'Marcar', exact: true }).click();
+    const pendingRest = await state();
+    assert.equal(pendingRest.activeDraft.exercises[0].sets[0].completed, false);
+    assert.equal(pendingRest.restTimer.status, 'running');
+    assert.equal(pendingRest.restTimer.automaticSource.exerciseId, lastExerciseName);
+    assert.equal(await page.getByText('Treino concluído', { exact: true }).count(), 0);
+    console.log('PASS out-of-order completion still starts automatic rest while a prior series is pending');
+
+    await page.getByRole('button', { name: 'Parar descanso', exact: true }).click();
+    await firstExercise().getByRole('button', { name: 'Marcar', exact: true }).click();
+    await page.getByText('Treino concluído', { exact: true }).waitFor();
+    let complete = await state();
+    assert.equal(complete.restTimer.status, 'ready');
+    assert.equal(complete.restTimer.automaticSource, undefined);
+    assert.ok(complete.activeDraft.exercises.every((exercise) => exercise.sets.every((set) => set.completed)));
+    assert.equal(await page.getByRole('dialog').count(), 1);
+    await page.keyboard.press('Escape');
+    assert.equal(await page.getByRole('dialog').count(), 0);
+    await page.evaluate(() => { window.dispatchEvent(new Event('focus')); document.dispatchEvent(new Event('visibilitychange')); });
+    assert.equal(await page.getByRole('dialog').count(), 0);
+    await click('Finalizar treino');
+    await page.getByRole('dialog').getByText('Bom trabalho. Confirma a finalização deste treino?').waitFor();
+    await action('Voltar ao treino');
+    await firstExercise().getByRole('button', { name: /Concluído.*3\/3 séries/ }).click();
+    await firstExercise().getByRole('button', { name: 'Feita', exact: true }).first().click();
+    await action('Desmarcar série');
+    await firstExercise().getByRole('button', { name: 'Marcar', exact: true }).first().click();
+    await page.getByText('Treino concluído', { exact: true }).waitFor();
+    complete = await state();
+    assert.equal(complete.restTimer.status, 'ready');
+    await action('Finalizar treino');
+    assert.equal((await state()).activeDraft, null);
+    assert.equal((await state()).history.length, 1);
+    console.log('PASS one-shot automatic finish prompt, manual 100% confirmation, re-completion and shared finish flow');
   } finally {
     await browser.close();
   }

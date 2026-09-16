@@ -11,7 +11,9 @@ interface SetRowProps {
 
 export const SetRow = ({ index, set, previousSet, onChange, onToggleCompleted }: SetRowProps) => {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+    <div className={`rounded-2xl border p-3 transition-colors duration-200 motion-reduce:transition-none ${
+      set.completed ? 'border-accent-500 bg-zinc-950/70' : 'border-white/10 bg-black/20'
+    }`}>
       <div className="mb-3 flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-zinc-100">Série {index + 1}</p>

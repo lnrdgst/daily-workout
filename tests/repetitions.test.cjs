@@ -153,7 +153,7 @@ test('actual finish handler treats 20-second prefills as accidental and explicit
       }
       const { WorkoutPage } = loadModule('src/pages/WorkoutPage.tsx', mocks);
       descendants(WorkoutPage()).find((node) => node.type === 'button' && node.props.children === 'Finalizar treino').props.onClick();
-      assert.equal(dialogs[completed ? 0 : 1], true);
+      assert.equal(dialogs[completed ? 0 : 1], completed ? 'manual' : true);
       assert.equal(dialogs[completed ? 1 : 0], undefined);
     }
   }
