@@ -6,7 +6,7 @@ interface ConfirmDialogProps {
   open: boolean;
   title: string;
   description: string;
-  confirmLabel: string;
+  confirmLabel?: string;
   cancelLabel: string;
   destructive?: boolean;
   confirmDisabled?: boolean;
@@ -76,14 +76,14 @@ export const ConfirmDialog = ({
           <button ref={cancelButtonRef} type="button" onClick={onCancel} className="touch-button bg-white/10 text-zinc-100">
             {cancelLabel}
           </button>
-          <button
+          {confirmLabel && <button
             type="button"
             onClick={onConfirm}
             disabled={confirmDisabled}
             className={`touch-button font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 ${destructive ? 'bg-danger' : 'bg-accent-500'}`}
           >
             {confirmLabel}
-          </button>
+          </button>}
           {additionalAction && (
             <button type="button" onClick={additionalAction.onClick} className="touch-button bg-danger font-semibold text-white">
               {additionalAction.label}

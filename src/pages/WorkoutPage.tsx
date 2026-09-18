@@ -168,8 +168,7 @@ export const WorkoutPage = () => {
               const canChange = options.length > 1 && !!sessionState.executedExerciseId && !sessionState.sets.some((set) => set.completed);
               const displayedExercise = sessionState.executedExerciseId ? { ...exercise, ...exercisesById[sessionState.executedExerciseId], id: prescription.id } : exercise;
               return (
-                <div key={prescription.id} className="space-y-2">
-                  {canChoose && <button type="button" onClick={() => setOptionSlotId(prescription.id)} className="touch-button w-full bg-accent-500 text-white">Escolher exercício</button>}
+                <div key={prescription.id}>
                   <ExerciseCard
                   exercise={displayedExercise}
                   sessionState={sessionState}
@@ -178,8 +177,8 @@ export const WorkoutPage = () => {
                   onToggleCompleted={(setIndex, isCurrentlyCompleted) =>
                     handleSetCompletedToggle(sessionState.exerciseId, setIndex, isCurrentlyCompleted)
                   }
+                  optionAction={canChoose || canChange ? { label: canChoose ? 'Escolher exercício' : 'Trocar exercício', onClick: () => setOptionSlotId(prescription.id) } : undefined}
                 />
-                  {canChange && <button type="button" onClick={() => setOptionSlotId(prescription.id)} className="w-full text-sm text-accent-300">Trocar exercício</button>}
                 </div>
               );
             })}
@@ -244,7 +243,7 @@ export const WorkoutPage = () => {
         title="Escolha o exercício"
         description="Este treino permite mais de uma opção para este exercício."
         cancelLabel="Cancelar"
-        confirmLabel="Escolher"
+        confirmLabel={undefined}
         confirmDisabled
         onCancel={() => setOptionSlotId(null)}
         onConfirm={() => {}}
