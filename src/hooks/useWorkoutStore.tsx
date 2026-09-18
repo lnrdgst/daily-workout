@@ -390,7 +390,7 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
           const target = current.activeDraft.exercises.find((exercise) => (exercise.slotId ?? exercise.exerciseId) === slotId);
           if (!target || target.sets.some((set) => set.completed)) return current;
           const prescribedId = target.prescribedExerciseId;
-          if (!prescribedId || !exercisesById[prescribedId]?.compatibleExerciseIds?.includes(exerciseId)) return current;
+          if (!prescribedId || (exerciseId !== prescribedId && !exercisesById[prescribedId]?.compatibleExerciseIds?.includes(exerciseId))) return current;
           const previousSets = getPreviousExercisePerformance(current.history, exerciseId);
           return { ...current, activeDraft: { ...current.activeDraft, exercises: current.activeDraft.exercises.map((exercise) =>
             (exercise.slotId ?? exercise.exerciseId) !== slotId ? exercise : {

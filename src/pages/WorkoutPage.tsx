@@ -182,7 +182,7 @@ export const WorkoutPage = () => {
                     handleSetCompletedToggle(sessionState.exerciseId, setIndex, isCurrentlyCompleted)
                   }
                   optionAction={canChoose || canChange ? { label: canChoose ? 'Escolher exercício' : 'Trocar exercício', onClick: () => setOptionSlotId(prescription.id) } : undefined}
-                  secondaryAction={replacementIds.length ? { label: 'Substituir exercício', onClick: () => setReplacementSlotId(prescription.id) } : undefined}
+                  secondaryAction={replacementIds.length ? { label: sessionState.executedExerciseId && sessionState.executedExerciseId !== sessionState.prescribedExerciseId ? 'Trocar exercício' : 'Substituir exercício', onClick: () => setReplacementSlotId(prescription.id) } : undefined}
                 />
                 </div>
               );
@@ -245,7 +245,7 @@ export const WorkoutPage = () => {
 
       <ConfirmDialog
         open={replacementSlotId !== null}
-        title="Substituir exercício"
+        title={replacementSlotId && activeDraft?.exercises.find((item) => (item.slotId ?? item.exerciseId) === replacementSlotId)?.executedExerciseId !== activeDraft?.exercises.find((item) => (item.slotId ?? item.exerciseId) === replacementSlotId)?.prescribedExerciseId ? 'Trocar exercício' : 'Substituir exercício'}
         description="Escolha uma alternativa para esta sessão."
         cancelLabel="Cancelar"
         confirmLabel={undefined}
@@ -255,7 +255,9 @@ export const WorkoutPage = () => {
         <div className="mt-4 grid gap-2">
           {replacementSlotId && (() => {
             const stateExercise = activeDraft?.exercises.find((item) => (item.slotId ?? item.exerciseId) === replacementSlotId);
-            const ids = stateExercise?.prescribedExerciseId ? exercisesById[stateExercise.prescribedExerciseId]?.compatibleExerciseIds ?? [] : [];
+            const compatible = stateExercise?.prescribedExerciseId ? exercisesById[stateExercise.prescribedExerciseId]?.compatibleExerciseIds ?? [] : [];
+            const ids = stateExercise?.executedExerciseId && stateExercise.executedExerciseId !== stateExercise.prescribedExerciseId
+              ? [stateExercise.prescribedExerciseId!, ...compatible] : compatible;
             return ids.map((optionId) => <button key={optionId} type="button" onClick={() => { replaceExercise(replacementSlotId, optionId); setReplacementSlotId(null); }} className="touch-button bg-white/10 text-left text-zinc-100">{exercisesById[optionId].name}</button>);
           })()}
         </div>
