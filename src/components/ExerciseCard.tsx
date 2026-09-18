@@ -11,6 +11,7 @@ interface ExerciseCardProps {
   onSetChange: (setIndex: number, patch: Partial<ExerciseSetLog>) => void;
   onToggleCompleted: (setIndex: number, isCurrentlyCompleted: boolean) => void;
   optionAction?: { label: string; onClick: () => void };
+  secondaryAction?: { label: string; onClick: () => void };
 }
 
 const AUTO_COLLAPSE_DELAY_MS = 550;
@@ -22,6 +23,7 @@ export const ExerciseCard = ({
   onSetChange,
   onToggleCompleted,
   optionAction,
+  secondaryAction,
 }: ExerciseCardProps) => {
   const completedSets = sessionState.sets.filter((set) => set.completed).length;
   const isCompleted = sessionState.sets.length > 0 && completedSets === sessionState.sets.length;
@@ -98,6 +100,9 @@ export const ExerciseCard = ({
         <div className="min-h-0 overflow-hidden">
           {optionAction && <button type="button" onClick={optionAction.onClick} className="touch-button mb-3 w-full border border-white/20 bg-transparent text-sm text-accent-300">
             {optionAction.label}
+          </button>}
+          {secondaryAction && <button type="button" onClick={secondaryAction.onClick} className="mb-3 w-full text-sm text-zinc-400">
+            {secondaryAction.label}
           </button>}
           <div className="space-y-3">
             {sessionState.sets.map((set, index) => (

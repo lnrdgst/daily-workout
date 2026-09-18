@@ -43,6 +43,7 @@ interface WorkoutStoreValue {
   deleteHistoryEntry: (historyEntryId: string) => void;
   getPreviousExerciseSets: (exerciseId: string) => ExerciseSetLog[] | null;
   selectExerciseOption: (slotId: string, exerciseId: string) => void;
+  replaceExercise: (slotId: string, exerciseId: string) => void;
 }
 
 const WorkoutStoreContext = createContext<WorkoutStoreValue | null>(null);
@@ -380,6 +381,21 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
             (exercise.slotId ?? exercise.exerciseId) !== slotId ? exercise : {
               ...exercise, executedExerciseId: exerciseId, executedExerciseName: exercisesById[exerciseId]?.name,
               sets: exercise.sets.map((set, index) => ({ ...set, load: previousSets?.[index]?.load ?? '', reps: previousSets?.[index]?.reps ?? set.reps })),
+            }), } };
+        });
+      },
+      replaceExercise: (slotId, exerciseId) => {
+        setState((current) => {
+          if (!current.activeDraft || current.activeDraft.type === 'cardio') return current;
+          const target = current.activeDraft.exercises.find((exercise) => (exercise.slotId ?? exercise.exerciseId) === slotId);
+          if (!target || target.sets.some((set) => set.completed)) return current;
+          const prescribedId = target.prescribedExerciseId;
+          if (!prescribedId || !exercisesById[prescribedId]?.compatibleExerciseIds?.includes(exerciseId)) return current;
+          const previousSets = getPreviousExercisePerformance(current.history, exerciseId);
+          return { ...current, activeDraft: { ...current.activeDraft, exercises: current.activeDraft.exercises.map((exercise) =>
+            (exercise.slotId ?? exercise.exerciseId) !== slotId ? exercise : {
+              ...exercise, executedExerciseId: exerciseId, executedExerciseName: exercisesById[exerciseId].name,
+              sets: exercise.sets.map((set, index) => ({ load: previousSets?.[index]?.load ?? '', reps: previousSets?.[index]?.reps ?? set.reps, completed: false })),
             }), } };
         });
       },

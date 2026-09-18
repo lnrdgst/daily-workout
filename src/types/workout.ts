@@ -21,6 +21,7 @@ export interface ExerciseDefinition {
   icon?: ExerciseIcon;
   image?: string;
   equipment?: string;
+  compatibleExerciseIds?: string[];
 }
 
 export interface WorkoutExercise {

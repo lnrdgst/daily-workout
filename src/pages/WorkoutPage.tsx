@@ -57,6 +57,7 @@ export const WorkoutPage = () => {
     discardDraft,
     getPreviousExerciseSets,
     selectExerciseOption,
+    replaceExercise,
   } = useWorkoutStore();
   const backToWorkouts = useWorkoutPreviewNavigation(Boolean(state.activeDraft));
   const [restTimerSettings] = useRestTimerSettings();
@@ -65,6 +66,7 @@ export const WorkoutPage = () => {
   const [isAccidentalFinishDialogOpen, setIsAccidentalFinishDialogOpen] = useState(false);
   const [undoTarget, setUndoTarget] = useState<{ target: SetCompletionTarget; restId: string | null } | null>(null);
   const [optionSlotId, setOptionSlotId] = useState<string | null>(null);
+  const [replacementSlotId, setReplacementSlotId] = useState<string | null>(null);
 
   const workoutId = id === 'A' || id === 'B' || id === 'C' ? id : null;
   const workout = workoutId ? workoutsById[workoutId] : null;
@@ -167,6 +169,8 @@ export const WorkoutPage = () => {
               const canChoose = options.length > 1 && !sessionState.executedExerciseId;
               const canChange = options.length > 1 && !!sessionState.executedExerciseId && !sessionState.sets.some((set) => set.completed);
               const displayedExercise = sessionState.executedExerciseId ? { ...exercise, ...exercisesById[sessionState.executedExerciseId], id: prescription.id } : exercise;
+              const replacementIds = sessionState.prescribedExerciseId && !sessionState.sets.some((set) => set.completed)
+                ? exercisesById[sessionState.prescribedExerciseId]?.compatibleExerciseIds ?? [] : [];
               return (
                 <div key={prescription.id}>
                   <ExerciseCard
@@ -178,6 +182,7 @@ export const WorkoutPage = () => {
                     handleSetCompletedToggle(sessionState.exerciseId, setIndex, isCurrentlyCompleted)
                   }
                   optionAction={canChoose || canChange ? { label: canChoose ? 'Escolher exercício' : 'Trocar exercício', onClick: () => setOptionSlotId(prescription.id) } : undefined}
+                  secondaryAction={replacementIds.length ? { label: 'Substituir exercício', onClick: () => setReplacementSlotId(prescription.id) } : undefined}
                 />
                 </div>
               );
@@ -237,6 +242,24 @@ export const WorkoutPage = () => {
 
         </>
       )}
+
+      <ConfirmDialog
+        open={replacementSlotId !== null}
+        title="Substituir exercício"
+        description="Escolha uma alternativa para esta sessão."
+        cancelLabel="Cancelar"
+        confirmLabel={undefined}
+        onCancel={() => setReplacementSlotId(null)}
+        onConfirm={() => {}}
+      >
+        <div className="mt-4 grid gap-2">
+          {replacementSlotId && (() => {
+            const stateExercise = activeDraft?.exercises.find((item) => (item.slotId ?? item.exerciseId) === replacementSlotId);
+            const ids = stateExercise?.prescribedExerciseId ? exercisesById[stateExercise.prescribedExerciseId]?.compatibleExerciseIds ?? [] : [];
+            return ids.map((optionId) => <button key={optionId} type="button" onClick={() => { replaceExercise(replacementSlotId, optionId); setReplacementSlotId(null); }} className="touch-button bg-white/10 text-left text-zinc-100">{exercisesById[optionId].name}</button>);
+          })()}
+        </div>
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={optionSlotId !== null}
