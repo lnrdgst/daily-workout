@@ -7,7 +7,7 @@ import { MainNavigation } from '@/components/MainNavigation';
 import { RestTimer } from '@/components/RestTimer';
 import { ViewBackButton } from '@/components/ViewBackButton';
 import { workoutsById } from '@/data/workouts';
-import { getWorkoutExerciseView } from '@/data/exercises';
+import { exercisesById, getWorkoutExerciseView } from '@/data/exercises';
 import { useRestTimerSettings } from '@/hooks/useRestTimerSettings';
 import { useWorkoutSessionSettings } from '@/hooks/useWorkoutSessionSettings';
 import { getWorkoutDurationSeconds, useWorkoutDuration } from '@/hooks/useWorkoutDuration';
@@ -56,6 +56,7 @@ export const WorkoutPage = () => {
     finishWorkout,
     discardDraft,
     getPreviousExerciseSets,
+    selectExerciseOption,
   } = useWorkoutStore();
   const backToWorkouts = useWorkoutPreviewNavigation(Boolean(state.activeDraft));
   const [restTimerSettings] = useRestTimerSettings();
@@ -63,6 +64,7 @@ export const WorkoutPage = () => {
   const [finishDialogOrigin, setFinishDialogOrigin] = useState<'manual' | 'automatic' | null>(null);
   const [isAccidentalFinishDialogOpen, setIsAccidentalFinishDialogOpen] = useState(false);
   const [undoTarget, setUndoTarget] = useState<{ target: SetCompletionTarget; restId: string | null } | null>(null);
+  const [optionSlotId, setOptionSlotId] = useState<string | null>(null);
 
   const workoutId = id === 'A' || id === 'B' || id === 'C' ? id : null;
   const workout = workoutId ? workoutsById[workoutId] : null;
@@ -161,10 +163,15 @@ export const WorkoutPage = () => {
                 return null;
               }
 
+              const options = prescription.prescribedExerciseIds ?? [prescription.prescribedExerciseId];
+              const canChoose = options.length > 1 && !sessionState.executedExerciseId;
+              const canChange = options.length > 1 && !!sessionState.executedExerciseId && !sessionState.sets.some((set) => set.completed);
+              const displayedExercise = sessionState.executedExerciseId ? { ...exercise, ...exercisesById[sessionState.executedExerciseId], id: prescription.id } : exercise;
               return (
-                <ExerciseCard
-                  key={prescription.id}
-                  exercise={exercise}
+                <div key={prescription.id} className="space-y-2">
+                  {canChoose && <button type="button" onClick={() => setOptionSlotId(prescription.id)} className="touch-button w-full bg-accent-500 text-white">Escolher exercício</button>}
+                  <ExerciseCard
+                  exercise={displayedExercise}
                   sessionState={sessionState}
                   previousSets={getPreviousExerciseSets(sessionState.executedExerciseId ?? prescription.prescribedExerciseId)}
                   onSetChange={(setIndex, patch) => updateSet(sessionState.exerciseId, setIndex, patch)}
@@ -172,6 +179,8 @@ export const WorkoutPage = () => {
                     handleSetCompletedToggle(sessionState.exerciseId, setIndex, isCurrentlyCompleted)
                   }
                 />
+                  {canChange && <button type="button" onClick={() => setOptionSlotId(prescription.id)} className="w-full text-sm text-accent-300">Trocar exercício</button>}
+                </div>
               );
             })}
           </section>
@@ -229,6 +238,25 @@ export const WorkoutPage = () => {
 
         </>
       )}
+
+      <ConfirmDialog
+        open={optionSlotId !== null}
+        title="Escolha o exercício"
+        description="Este treino permite mais de uma opção para este exercício."
+        cancelLabel="Cancelar"
+        confirmLabel="Escolher"
+        confirmDisabled
+        onCancel={() => setOptionSlotId(null)}
+        onConfirm={() => {}}
+      >
+        <div className="mt-4 grid gap-2">
+          {optionSlotId && workout.exercises.find((item) => item.id === optionSlotId)?.prescribedExerciseIds?.map((optionId) => (
+            <button key={optionId} type="button" onClick={() => { selectExerciseOption(optionSlotId, optionId); setOptionSlotId(null); }} className="touch-button bg-white/10 text-left text-zinc-100">
+              {exercisesById[optionId].name}
+            </button>
+          ))}
+        </div>
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={undoTarget !== null}

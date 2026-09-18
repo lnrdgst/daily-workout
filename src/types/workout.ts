@@ -27,6 +27,7 @@ export interface WorkoutExercise {
   /** Stable prescription slot. This remains independent from the executed exercise. */
   id: string;
   prescribedExerciseId: string;
+  prescribedExerciseIds?: string[];
   /** Temporary prescription wording, used by current composite entries. */
   label?: string;
   sets: number;
@@ -58,6 +59,7 @@ export interface ExerciseSessionState {
   prescribedExerciseName?: string;
   executedExerciseName?: string;
   muscleGroup?: string;
+  prescribedExerciseIds?: string[];
   sets: ExerciseSetLog[];
 }
 

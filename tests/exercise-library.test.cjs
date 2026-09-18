@@ -75,3 +75,13 @@ test('legacy drafts remain readable without normalization or localStorage reset'
   const persistent = loadModule('src/utils/storage.ts', { window: { localStorage: { getItem: () => JSON.stringify({ activeDraft: legacyDraft, history: [] }) } } });
   assert.deepEqual(persistent.loadAppState().activeDraft, legacyDraft);
 });
+
+test('prescribed alternatives remain unselected until the session chooses a physical exercise', () => {
+  const draft = storage.createWorkoutDraft(workoutsById.C, [{ exercises: [{ exerciseId: 'leg-curl-a', sets: sets('55', '10') }] }]);
+  const curl = draft.exercises.find((exercise) => exercise.exerciseId === 'leg-curl-c');
+  assert.deepEqual(curl.prescribedExerciseIds, ['lying-leg-curl', 'seated-leg-curl']);
+  assert.equal(curl.executedExerciseId, undefined);
+  assert.equal(curl.sets[0].load, '');
+  assert.equal(curl.sets[0].reps, '10');
+  assert.equal(curl.slotId, 'leg-curl-c');
+});

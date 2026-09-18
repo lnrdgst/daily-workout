@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef } from 'react';
 import type { PropsWithChildren } from 'react';
 import { workoutsById } from '@/data/workouts';
+import { exercisesById } from '@/data/exercises';
 import { useLocalStorageState } from './useLocalStorageState';
 import {
   buildHistoryEntry,
@@ -41,6 +42,7 @@ interface WorkoutStoreValue {
   clearHistory: () => void;
   deleteHistoryEntry: (historyEntryId: string) => void;
   getPreviousExerciseSets: (exerciseId: string) => ExerciseSetLog[] | null;
+  selectExerciseOption: (slotId: string, exerciseId: string) => void;
 }
 
 const WorkoutStoreContext = createContext<WorkoutStoreValue | null>(null);
@@ -368,6 +370,19 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
         setState(nextState);
       },
       getPreviousExerciseSets: (exerciseId) => getPreviousExercisePerformance(state.history, exerciseId),
+      selectExerciseOption: (slotId, exerciseId) => {
+        setState((current) => {
+          if (!current.activeDraft || current.activeDraft.type === 'cardio') return current;
+          const target = current.activeDraft.exercises.find((exercise) => (exercise.slotId ?? exercise.exerciseId) === slotId);
+          if (!target || target.sets.some((set) => set.completed)) return current;
+          const previousSets = getPreviousExercisePerformance(current.history, exerciseId);
+          return { ...current, activeDraft: { ...current.activeDraft, exercises: current.activeDraft.exercises.map((exercise) =>
+            (exercise.slotId ?? exercise.exerciseId) !== slotId ? exercise : {
+              ...exercise, executedExerciseId: exerciseId, executedExerciseName: exercisesById[exerciseId]?.name,
+              sets: exercise.sets.map((set, index) => ({ ...set, load: previousSets?.[index]?.load ?? '', reps: previousSets?.[index]?.reps ?? set.reps })),
+            }), } };
+        });
+      },
     };
   }, [setState, state]);
 

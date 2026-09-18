@@ -40,14 +40,16 @@ const cloneSetLog = (prescribedMinimumReps: number, set?: ExerciseSetLog): Exerc
 
 const createExerciseState = (prescription: Workout['exercises'][number], previousSets: ExerciseSetLog[] | null = null): ExerciseSessionState => {
   const exercise = getWorkoutExerciseView(prescription);
+  const options = prescription.prescribedExerciseIds ?? [prescription.prescribedExerciseId];
+  const hasOptions = options.length > 1;
   return {
     // exerciseId remains the stable slot identifier for legacy drafts and rest timers.
     exerciseId: prescription.id,
     slotId: prescription.id,
-    prescribedExerciseId: prescription.prescribedExerciseId,
-    executedExerciseId: prescription.prescribedExerciseId,
+    prescribedExerciseIds: options,
+    ...(hasOptions ? {} : { prescribedExerciseId: prescription.prescribedExerciseId, executedExerciseId: prescription.prescribedExerciseId }),
     prescribedExerciseName: exercise.name,
-    executedExerciseName: exercise.name,
+    ...(hasOptions ? {} : { executedExerciseName: exercise.name }),
     muscleGroup: exercise.muscleGroup,
     sets: Array.from({ length: prescription.sets }, (_, index) => cloneSetLog(prescription.repsMin, previousSets?.[index])),
   };
@@ -57,7 +59,7 @@ export const createWorkoutDraft = (workout: Workout, history: SessionHistory[] =
   type: 'strength',
   workoutId: workout.id,
   startedAt: new Date().toISOString(),
-  exercises: workout.exercises.map((exercise) => createExerciseState(exercise, getPreviousExercisePerformance(history, exercise.prescribedExerciseId))),
+  exercises: workout.exercises.map((exercise) => createExerciseState(exercise, (exercise.prescribedExerciseIds?.length ?? 1) > 1 ? null : getPreviousExercisePerformance(history, exercise.prescribedExerciseId))),
 });
 
 const defaultState: WorkoutAppState = {
@@ -141,7 +143,8 @@ export const buildHistoryEntry = (draft: WorkoutSessionDraft): WorkoutSessionHis
       const exercise = getWorkoutExerciseView(prescription);
       const sessionExercise = draft.exercises.find((item) => (item.slotId ?? item.exerciseId) === prescription.id);
       const prescribedExerciseId = sessionExercise?.prescribedExerciseId ?? prescription.prescribedExerciseId;
-      const executedExerciseId = sessionExercise?.executedExerciseId ?? prescribedExerciseId;
+      const executedExerciseId = sessionExercise?.executedExerciseId ?? (sessionExercise?.prescribedExerciseIds && sessionExercise.prescribedExerciseIds.length > 1
+        ? resolveCanonicalExerciseId(prescription.id) : prescribedExerciseId);
       const prescribedExerciseName = sessionExercise?.prescribedExerciseName ?? exercise.name;
       const executedExerciseName = sessionExercise?.executedExerciseName ?? prescribedExerciseName;
       return {

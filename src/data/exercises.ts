@@ -1,10 +1,17 @@
 import type { Exercise, ExerciseDefinition, WorkoutExercise } from '@/types/workout';
 
 export const exerciseLibrary: ExerciseDefinition[] = [
+  // Legacy composite identities remain resolvable for old persisted history only.
   { id: 'squat-or-hack', name: 'Agachamento ou Hack Squat', muscleGroup: 'Pernas', icon: 'squat' },
+  { id: 'leg-curl-lying-or-seated', name: 'Mesa ou cadeira flexora', muscleGroup: 'Posterior', icon: 'leg-curl' },
+  { id: 'triceps-french-or-rope', name: 'Tríceps francês ou corda', muscleGroup: 'Tríceps', icon: 'triceps' },
+  { id: 'machine-row-or-t-bar', name: 'Remada máquina ou cavalinho', muscleGroup: 'Costas', icon: 'row' },
+  { id: 'squat', name: 'Agachamento', muscleGroup: 'Pernas', icon: 'squat' },
+  { id: 'hack-squat', name: 'Hack Squat', muscleGroup: 'Pernas', icon: 'squat' },
   { id: 'bench-press', name: 'Supino reto', muscleGroup: 'Peito', icon: 'bench' },
   { id: 'lat-pulldown', name: 'Puxada frontal', muscleGroup: 'Costas', icon: 'pulldown' },
-  { id: 'leg-curl-lying-or-seated', name: 'Mesa ou cadeira flexora', muscleGroup: 'Posterior', icon: 'leg-curl' },
+  { id: 'lying-leg-curl', name: 'Mesa flexora', muscleGroup: 'Posterior', icon: 'leg-curl' },
+  { id: 'seated-leg-curl', name: 'Cadeira flexora', muscleGroup: 'Posterior', icon: 'leg-curl' },
   { id: 'lateral-raise', name: 'Elevação lateral', muscleGroup: 'Ombros', icon: 'lateral-raise' },
   { id: 'barbell-curl', name: 'Rosca direta', muscleGroup: 'Bíceps', icon: 'curl' },
   { id: 'cable-pushdown', name: 'Tríceps na polia', muscleGroup: 'Tríceps', icon: 'triceps' },
@@ -14,9 +21,11 @@ export const exerciseLibrary: ExerciseDefinition[] = [
   { id: 'seated-row', name: 'Remada baixa', muscleGroup: 'Costas', icon: 'row' },
   { id: 'shoulder-press', name: 'Desenvolvimento', muscleGroup: 'Ombros', icon: 'shoulder-press' },
   { id: 'hammer-curl', name: 'Rosca martelo', muscleGroup: 'Bíceps', icon: 'curl' },
-  { id: 'triceps-french-or-rope', name: 'Tríceps francês ou corda', muscleGroup: 'Tríceps', icon: 'triceps' },
+  { id: 'triceps-french', name: 'Tríceps francês', muscleGroup: 'Tríceps', icon: 'triceps' },
+  { id: 'triceps-rope', name: 'Tríceps na corda', muscleGroup: 'Tríceps', icon: 'triceps' },
   { id: 'chest-press', name: 'Supino máquina', muscleGroup: 'Peito', icon: 'chest-press' },
-  { id: 'machine-row-or-t-bar', name: 'Remada máquina ou cavalinho', muscleGroup: 'Costas', icon: 'row' },
+  { id: 'machine-row', name: 'Remada máquina', muscleGroup: 'Costas', icon: 'row' },
+  { id: 't-bar-row', name: 'Remada cavalinho', muscleGroup: 'Costas', icon: 'row' },
   { id: 'scott-curl', name: 'Rosca Scott', muscleGroup: 'Bíceps', icon: 'curl' },
 ];
 

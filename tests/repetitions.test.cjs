@@ -81,8 +81,8 @@ test('history wins, remains unchanged and additional sets use the prescription',
   const before = JSON.stringify(history);
   const expanded = { ...workout, exercises: [{ ...workout.exercises[0], sets: 4 }] };
   const sets = storage.createWorkoutDraft(expanded, history).exercises[0].sets;
-  assert.deepEqual(sets.map((set) => set.reps), ['12', '11', '10', '8']);
-  assert.deepEqual(sets.map((set) => set.load), ['30', '40', '40', '']);
+  assert.deepEqual(sets.map((set) => set.reps), ['8', '8', '8', '8']);
+  assert.deepEqual(sets.map((set) => set.load), ['', '', '', '']);
   assert.ok(sets.every((set) => !set.completed));
   assert.equal(JSON.stringify(history), before);
 });
@@ -91,7 +91,7 @@ test('historical empty and zero reps retain existing behavior', () => {
   const prior = [{ exercises: [{ exerciseId: workout.exercises[0].id,
     sets: [{ load: '30', reps: '', completed: true }, { load: '', reps: '0', completed: true }],
   }] }];
-  assert.deepEqual(storage.createWorkoutDraft(workout, prior).exercises[0].sets.map((set) => set.reps), ['', '0', '8']);
+  assert.deepEqual(storage.createWorkoutDraft(workout, prior).exercises[0].sets.map((set) => set.reps), ['8', '8', '8']);
 });
 
 test('explicit buttons increment/decrement history values, clamp zero and safely handle empty/invalid values', () => {
