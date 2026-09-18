@@ -7,6 +7,7 @@ import { MainNavigation } from '@/components/MainNavigation';
 import { RestTimer } from '@/components/RestTimer';
 import { ViewBackButton } from '@/components/ViewBackButton';
 import { workoutsById } from '@/data/workouts';
+import { getWorkoutExerciseView } from '@/data/exercises';
 import { useRestTimerSettings } from '@/hooks/useRestTimerSettings';
 import { useWorkoutSessionSettings } from '@/hooks/useWorkoutSessionSettings';
 import { getWorkoutDurationSeconds, useWorkoutDuration } from '@/hooks/useWorkoutDuration';
@@ -153,21 +154,22 @@ export const WorkoutPage = () => {
           <RestTimer />
 
           <section className="space-y-4">
-            {workout.exercises.map((exercise) => {
-              const sessionState = activeDraft.exercises.find((item) => item.exerciseId === exercise.id);
+            {workout.exercises.map((prescription) => {
+              const exercise = getWorkoutExerciseView(prescription);
+              const sessionState = activeDraft.exercises.find((item) => (item.slotId ?? item.exerciseId) === prescription.id);
               if (!sessionState) {
                 return null;
               }
 
               return (
                 <ExerciseCard
-                  key={exercise.id}
+                  key={prescription.id}
                   exercise={exercise}
                   sessionState={sessionState}
-                  previousSets={getPreviousExerciseSets(exercise.id)}
-                  onSetChange={(setIndex, patch) => updateSet(exercise.id, setIndex, patch)}
+                  previousSets={getPreviousExerciseSets(sessionState.executedExerciseId ?? prescription.prescribedExerciseId)}
+                  onSetChange={(setIndex, patch) => updateSet(sessionState.exerciseId, setIndex, patch)}
                   onToggleCompleted={(setIndex, isCurrentlyCompleted) =>
-                    handleSetCompletedToggle(exercise.id, setIndex, isCurrentlyCompleted)
+                    handleSetCompletedToggle(sessionState.exerciseId, setIndex, isCurrentlyCompleted)
                   }
                 />
               );
@@ -203,8 +205,9 @@ export const WorkoutPage = () => {
           </section>
 
           <section className="space-y-4">
-            {workout.exercises.map((exercise) => (
-              <article key={exercise.id} className="panel p-4">
+            {workout.exercises.map((prescription) => {
+              const exercise = getWorkoutExerciseView(prescription);
+              return <article key={prescription.id} className="panel p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <ExerciseIcon icon={exercise.icon} />
@@ -220,8 +223,8 @@ export const WorkoutPage = () => {
                     </p>
                   </div>
                 </div>
-              </article>
-            ))}
+              </article>;
+            })}
           </section>
 
         </>

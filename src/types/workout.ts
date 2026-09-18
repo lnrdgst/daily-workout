@@ -14,22 +14,33 @@ export type ExerciseIcon =
   | 'shoulder-press'
   | 'chest-press';
 
-export interface Exercise {
+export interface ExerciseDefinition {
   id: string;
   name: string;
-  sets: number;
-  repsMin: number;
-  repsMax: number;
   muscleGroup: string;
   icon?: ExerciseIcon;
   image?: string;
+  equipment?: string;
 }
+
+export interface WorkoutExercise {
+  /** Stable prescription slot. This remains independent from the executed exercise. */
+  id: string;
+  prescribedExerciseId: string;
+  /** Temporary prescription wording, used by current composite entries. */
+  label?: string;
+  sets: number;
+  repsMin: number;
+  repsMax: number;
+}
+
+export type Exercise = ExerciseDefinition & WorkoutExercise;
 
 export interface Workout {
   id: WorkoutId;
   name: string;
   description: string;
-  exercises: Exercise[];
+  exercises: WorkoutExercise[];
 }
 
 export interface ExerciseSetLog {
@@ -39,7 +50,14 @@ export interface ExerciseSetLog {
 }
 
 export interface ExerciseSessionState {
+  /** Legacy slot field retained for persisted drafts and rest-timer targets. */
   exerciseId: string;
+  slotId?: string;
+  prescribedExerciseId?: string;
+  executedExerciseId?: string;
+  prescribedExerciseName?: string;
+  executedExerciseName?: string;
+  muscleGroup?: string;
   sets: ExerciseSetLog[];
 }
 
@@ -81,6 +99,10 @@ export interface WorkoutSessionHistory {
     exerciseId: string;
     exerciseName: string;
     muscleGroup: string;
+    prescribedExerciseId?: string;
+    executedExerciseId?: string;
+    prescribedExerciseName?: string;
+    executedExerciseName?: string;
     sets: ExerciseSetLog[];
   }>;
 }

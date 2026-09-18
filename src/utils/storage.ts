@@ -1,7 +1,7 @@
 import { workoutsById } from '@/data/workouts';
+import { getWorkoutExerciseView, resolveCanonicalExerciseId } from '@/data/exercises';
 import { isStrengthHistory } from '@/utils/sessions';
 import type {
-  Exercise,
   ExerciseSessionState,
   ExerciseSetLog,
   Workout,
@@ -38,16 +38,26 @@ const cloneSetLog = (prescribedMinimumReps: number, set?: ExerciseSetLog): Exerc
   completed: false,
 });
 
-const createExerciseState = (exercise: Exercise, previousSets: ExerciseSetLog[] | null = null): ExerciseSessionState => ({
-  exerciseId: exercise.id,
-  sets: Array.from({ length: exercise.sets }, (_, index) => cloneSetLog(exercise.repsMin, previousSets?.[index])),
-});
+const createExerciseState = (prescription: Workout['exercises'][number], previousSets: ExerciseSetLog[] | null = null): ExerciseSessionState => {
+  const exercise = getWorkoutExerciseView(prescription);
+  return {
+    // exerciseId remains the stable slot identifier for legacy drafts and rest timers.
+    exerciseId: prescription.id,
+    slotId: prescription.id,
+    prescribedExerciseId: prescription.prescribedExerciseId,
+    executedExerciseId: prescription.prescribedExerciseId,
+    prescribedExerciseName: exercise.name,
+    executedExerciseName: exercise.name,
+    muscleGroup: exercise.muscleGroup,
+    sets: Array.from({ length: prescription.sets }, (_, index) => cloneSetLog(prescription.repsMin, previousSets?.[index])),
+  };
+};
 
 export const createWorkoutDraft = (workout: Workout, history: SessionHistory[] = []): WorkoutSessionDraft => ({
   type: 'strength',
   workoutId: workout.id,
   startedAt: new Date().toISOString(),
-  exercises: workout.exercises.map((exercise) => createExerciseState(exercise, getPreviousExercisePerformance(history, exercise.id))),
+  exercises: workout.exercises.map((exercise) => createExerciseState(exercise, getPreviousExercisePerformance(history, exercise.prescribedExerciseId))),
 });
 
 const defaultState: WorkoutAppState = {
@@ -127,13 +137,23 @@ export const buildHistoryEntry = (draft: WorkoutSessionDraft): WorkoutSessionHis
     workoutName: workout.name,
     startedAt: draft.startedAt,
     finishedAt: new Date().toISOString(),
-    exercises: workout.exercises.map((exercise) => {
-      const sessionExercise = draft.exercises.find((item) => item.exerciseId === exercise.id);
+    exercises: workout.exercises.map((prescription) => {
+      const exercise = getWorkoutExerciseView(prescription);
+      const sessionExercise = draft.exercises.find((item) => (item.slotId ?? item.exerciseId) === prescription.id);
+      const prescribedExerciseId = sessionExercise?.prescribedExerciseId ?? prescription.prescribedExerciseId;
+      const executedExerciseId = sessionExercise?.executedExerciseId ?? prescribedExerciseId;
+      const prescribedExerciseName = sessionExercise?.prescribedExerciseName ?? exercise.name;
+      const executedExerciseName = sessionExercise?.executedExerciseName ?? prescribedExerciseName;
       return {
-        exerciseId: exercise.id,
-        exerciseName: exercise.name,
-        muscleGroup: exercise.muscleGroup,
-        sets: sessionExercise?.sets ?? Array.from({ length: exercise.sets }, createSetLog),
+        // Keep the legacy field while making the executed canonical identity explicit.
+        exerciseId: executedExerciseId,
+        exerciseName: executedExerciseName,
+        muscleGroup: sessionExercise?.muscleGroup ?? exercise.muscleGroup,
+        prescribedExerciseId,
+        executedExerciseId,
+        prescribedExerciseName,
+        executedExerciseName,
+        sets: sessionExercise?.sets ?? Array.from({ length: prescription.sets }, createSetLog),
       };
     }),
   };
@@ -143,9 +163,12 @@ export const getPreviousExercisePerformance = (
   history: SessionHistory[],
   exerciseId: string,
 ): ExerciseSetLog[] | null => {
+  const canonicalExerciseId = resolveCanonicalExerciseId(exerciseId);
   for (const session of [...history].reverse()) {
     if (!isStrengthHistory(session)) continue;
-    const match = session.exercises.find((exercise) => exercise.exerciseId === exerciseId);
+    const match = session.exercises.find((exercise) =>
+      resolveCanonicalExerciseId(exercise.executedExerciseId ?? exercise.exerciseId) === canonicalExerciseId,
+    );
     if (match && match.sets.some(hasRecordedSetData)) {
       return match.sets;
     }
