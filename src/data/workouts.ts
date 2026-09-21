@@ -7,9 +7,9 @@ export const workouts: Workout[] = [
     description: 'Base do full body com foco em agachamento, supino e puxada.',
     exercises: [
       { id: 'squat-hack', prescribedExerciseId: 'squat', prescribedExerciseIds: ['squat', 'hack-squat'], sets: 3, repsMin: 8, repsMax: 12 },
+      { id: 'leg-curl-a', prescribedExerciseId: 'lying-leg-curl', prescribedExerciseIds: ['lying-leg-curl', 'seated-leg-curl'], sets: 3, repsMin: 10, repsMax: 15 },
       { id: 'bench-press', prescribedExerciseId: 'bench-press', sets: 3, repsMin: 8, repsMax: 12 },
       { id: 'lat-pulldown', prescribedExerciseId: 'lat-pulldown', sets: 3, repsMin: 8, repsMax: 12 },
-      { id: 'leg-curl-a', prescribedExerciseId: 'lying-leg-curl', prescribedExerciseIds: ['lying-leg-curl', 'seated-leg-curl'], sets: 3, repsMin: 10, repsMax: 15 },
       { id: 'lateral-raise-a', prescribedExerciseId: 'lateral-raise', sets: 3, repsMin: 12, repsMax: 15 },
       { id: 'barbell-curl', prescribedExerciseId: 'barbell-curl', sets: 3, repsMin: 10, repsMax: 12 },
       { id: 'cable-pushdown-a', prescribedExerciseId: 'cable-pushdown', sets: 3, repsMin: 10, repsMax: 15 },
