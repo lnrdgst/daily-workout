@@ -176,7 +176,7 @@ export const WorkoutPage = () => {
                   <ExerciseCard
                   exercise={displayedExercise}
                   sessionState={sessionState}
-                  previousSets={getPreviousExerciseSets(sessionState.executedExerciseId ?? prescription.prescribedExerciseId)}
+                  previousSets={sessionState.executedExerciseId ? getPreviousExerciseSets(sessionState.executedExerciseId) : null}
                   onSetChange={(setIndex, patch) => updateSet(sessionState.exerciseId, setIndex, patch)}
                   onToggleCompleted={(setIndex, isCurrentlyCompleted) =>
                     handleSetCompletedToggle(sessionState.exerciseId, setIndex, isCurrentlyCompleted)

@@ -5,6 +5,7 @@ import { exercisesById } from '@/data/exercises';
 import { useLocalStorageState } from './useLocalStorageState';
 import {
   buildHistoryEntry,
+  createExerciseSets,
   createWorkoutDraft,
   defaultRestTimerState,
   getPreviousExercisePerformance,
@@ -376,11 +377,13 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
           if (!current.activeDraft || current.activeDraft.type === 'cardio') return current;
           const target = current.activeDraft.exercises.find((exercise) => (exercise.slotId ?? exercise.exerciseId) === slotId);
           if (!target || target.sets.some((set) => set.completed)) return current;
+          const prescription = workoutsById[current.activeDraft.workoutId].exercises.find((exercise) => exercise.id === slotId);
+          if (!prescription) return current;
           const previousSets = getPreviousExercisePerformance(current.history, exerciseId);
           return { ...current, activeDraft: { ...current.activeDraft, exercises: current.activeDraft.exercises.map((exercise) =>
             (exercise.slotId ?? exercise.exerciseId) !== slotId ? exercise : {
               ...exercise, executedExerciseId: exerciseId, executedExerciseName: exercisesById[exerciseId]?.name,
-              sets: exercise.sets.map((set, index) => ({ ...set, load: previousSets?.[index]?.load ?? '', reps: previousSets?.[index]?.reps ?? set.reps })),
+              sets: createExerciseSets(prescription, previousSets),
             }), } };
         });
       },

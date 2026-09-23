@@ -1,5 +1,5 @@
 import { workoutsById } from '@/data/workouts';
-import { getWorkoutExerciseView, resolveCanonicalExerciseId } from '@/data/exercises';
+import { exercisesById, getWorkoutExerciseView, resolveCanonicalExerciseId } from '@/data/exercises';
 import { isStrengthHistory } from '@/utils/sessions';
 import type {
   ExerciseSessionState,
@@ -38,6 +38,14 @@ const cloneSetLog = (prescribedMinimumReps: number, set?: ExerciseSetLog): Exerc
   completed: false,
 });
 
+export const createExerciseSets = (
+  prescription: Workout['exercises'][number],
+  previousSets: ExerciseSetLog[] | null = null,
+): ExerciseSetLog[] => Array.from(
+  { length: prescription.sets },
+  (_, index) => cloneSetLog(prescription.repsMin, previousSets?.[index]),
+);
+
 const createExerciseState = (prescription: Workout['exercises'][number], previousSets: ExerciseSetLog[] | null = null): ExerciseSessionState => {
   const exercise = getWorkoutExerciseView(prescription);
   const options = prescription.prescribedExerciseIds ?? [prescription.prescribedExerciseId];
@@ -51,7 +59,7 @@ const createExerciseState = (prescription: Workout['exercises'][number], previou
     prescribedExerciseName: exercise.name,
     ...(hasOptions ? {} : { executedExerciseName: exercise.name }),
     muscleGroup: exercise.muscleGroup,
-    sets: Array.from({ length: prescription.sets }, (_, index) => cloneSetLog(prescription.repsMin, previousSets?.[index])),
+    sets: createExerciseSets(prescription, previousSets),
   };
 };
 
@@ -166,11 +174,15 @@ export const getPreviousExercisePerformance = (
   history: SessionHistory[],
   exerciseId: string,
 ): ExerciseSetLog[] | null => {
-  const canonicalExerciseId = resolveCanonicalExerciseId(exerciseId);
+  // Current callers pass a canonical ID. Keep accepting old slot IDs for legacy
+  // callers, but never reinterpret a known canonical ID through a legacy alias.
+  const requestedExerciseId = exercisesById[exerciseId] ? exerciseId : resolveCanonicalExerciseId(exerciseId);
   for (const session of [...history].reverse()) {
     if (!isStrengthHistory(session)) continue;
     const match = session.exercises.find((exercise) =>
-      resolveCanonicalExerciseId(exercise.executedExerciseId ?? exercise.exerciseId) === canonicalExerciseId,
+      // An explicit executed ID identifies a canonical physical exercise. Only
+      // records without it are legacy slots/composites and need alias resolution.
+      (exercise.executedExerciseId ?? resolveCanonicalExerciseId(exercise.exerciseId)) === requestedExerciseId,
     );
     if (match && match.sets.some(hasRecordedSetData)) {
       return match.sets;
