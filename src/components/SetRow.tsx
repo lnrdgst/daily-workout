@@ -1,4 +1,5 @@
 import { IntegerStepper } from '@/components/IntegerStepper';
+import { useEffect, useState } from 'react';
 import type { ExerciseSetLog } from '@/types/workout';
 
 interface SetRowProps {
@@ -10,6 +11,12 @@ interface SetRowProps {
 }
 
 export const SetRow = ({ index, set, previousSet, onChange, onToggleCompleted }: SetRowProps) => {
+  const [load, setLoad] = useState(set.load);
+
+  useEffect(() => {
+    setLoad(set.load);
+  }, [set.load]);
+
   return (
     <div className={`rounded-2xl border p-3 transition-colors duration-200 motion-reduce:transition-none ${
       set.completed ? 'border-accent-500 bg-zinc-950/70' : 'border-white/10 bg-black/20'
@@ -38,8 +45,11 @@ export const SetRow = ({ index, set, previousSet, onChange, onToggleCompleted }:
           <input
             type="number"
             inputMode="decimal"
-            value={set.load}
-            onChange={(event) => onChange({ load: event.target.value })}
+            value={load}
+            onChange={(event) => setLoad(event.target.value)}
+            onBlur={() => {
+              if (load !== set.load) onChange({ load });
+            }}
             className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white outline-none transition focus:border-accent-400"
             placeholder="kg"
           />

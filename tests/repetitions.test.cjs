@@ -60,7 +60,7 @@ test('shared duration stepper clamps buttons, keeps edits until blur and has no 
 
 function row(initialReps) {
   let set = { reps: initialReps, load: '', completed: false };
-  const { SetRow } = loadModule('src/components/SetRow.tsx', { react: { useId: () => 'reps-test' } });
+  const { SetRow } = loadModule('src/components/SetRow.tsx', { react: { useId: () => 'reps-test', useState: (value) => [value, () => {}], useEffect: () => {} } });
   const render = () => descendants(SetRow({ index: 0, set, onChange: (patch) => { set = { ...set, ...patch }; } }));
   return {
     value: () => set,

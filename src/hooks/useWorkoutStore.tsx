@@ -18,6 +18,7 @@ import { isStrengthHistory } from '@/utils/sessions';
 import { undoCompletedSet } from '@/utils/setCompletion';
 import { loadRestAlertSettings } from '@/utils/restAlertSettings';
 import { buildRecoveredCardioHistoryEntry } from '@/utils/cardioRecovery';
+import { applyManualSetChange } from '@/utils/setPropagation';
 import type { CardioRecoveryInput } from '@/utils/cardioRecovery';
 import type { CardioData, CardioModality, CardioSessionDraft, ExerciseSetLog, RestTimerSessionState, SetCompletionTarget, WorkoutAppState, WorkoutId, WorkoutSessionHistory } from '@/types/workout';
 
@@ -195,14 +196,7 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
                 exercise.exerciseId === exerciseId
                   ? {
                       ...exercise,
-                      sets: exercise.sets.map((set, index) =>
-                        index === setIndex
-                          ? {
-                              ...set,
-                              ...patch,
-                            }
-                          : set,
-                      ),
+                      sets: applyManualSetChange(exercise.sets, setIndex, patch),
                     }
                   : exercise,
               ),
