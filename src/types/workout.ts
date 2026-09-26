@@ -49,7 +49,12 @@ export interface ExerciseSetLog {
   load: string;
   reps: string;
   completed: boolean;
+  /** Session-only provenance; omitted from completed history entries. */
+  loadSource?: SetValueSource;
+  repsSource?: SetValueSource;
 }
+
+export type SetValueSource = 'history' | 'prescription' | 'empty' | 'manual' | 'autofilled';
 
 export interface ExerciseSessionState {
   /** Legacy slot field retained for persisted drafts and rest-timer targets. */

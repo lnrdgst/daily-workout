@@ -25,6 +25,8 @@ const createSetLog = (): ExerciseSetLog => ({
   load: '',
   reps: '',
   completed: false,
+  loadSource: 'empty',
+  repsSource: 'empty',
 });
 
 const normalizeSetValue = (value: unknown): string => (typeof value === 'string' ? value : '');
@@ -36,6 +38,8 @@ const cloneSetLog = (prescribedMinimumReps: number, set?: ExerciseSetLog): Exerc
   load: normalizeSetValue(set?.load),
   reps: set ? normalizeSetValue(set.reps) : String(prescribedMinimumReps),
   completed: false,
+  loadSource: set?.load?.trim() ? 'history' : 'empty',
+  repsSource: set?.reps?.trim() ? 'history' : set ? 'empty' : 'prescription',
 });
 
 export const createExerciseSets = (
@@ -164,7 +168,7 @@ export const buildHistoryEntry = (draft: WorkoutSessionDraft): WorkoutSessionHis
         executedExerciseId,
         prescribedExerciseName,
         executedExerciseName,
-        sets: sessionExercise?.sets ?? Array.from({ length: prescription.sets }, createSetLog),
+        sets: (sessionExercise?.sets ?? Array.from({ length: prescription.sets }, createSetLog)).map(({ load, reps, completed }) => ({ load, reps, completed })),
       };
     }),
   };

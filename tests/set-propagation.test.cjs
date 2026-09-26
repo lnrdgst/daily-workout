@@ -11,57 +11,60 @@ function loadModule(relativePath) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
   });
   const module = { exports: {} };
-  const resolve = (name) => name.startsWith('@/')
-    ? loadModule(`src/${name.slice(2)}.ts`)
-    : require(name);
+  const resolve = (name) => name.startsWith('@/') ? loadModule(`src/${name.slice(2)}.ts`) : require(name);
   new Function('require', 'module', 'exports', outputText)(resolve, module, module.exports);
   return module.exports;
 }
 
 const { applyManualSetChange } = loadModule('src/utils/setPropagation.ts');
-const sets = (values) => values.map(([load, reps, completed = false]) => ({ load, reps, completed }));
+const set = (load, reps, loadSource = 'empty', repsSource = 'prescription', completed = false) => ({ load, reps, loadSource, repsSource, completed });
 
-test('load edit on S1 propagates only load to later pending sets', () => {
-  const next = applyManualSetChange(sets([['12', '15'], ['12', '12'], ['12', '10']]), 0, { load: '14' });
-  assert.deepEqual(next, sets([['14', '15'], ['14', '12'], ['14', '10']]));
+test('disabled preference changes only the edited set', () => {
+  const next = applyManualSetChange([set('12', '15'), set('12', '15'), set('12', '12')], 0, { load: '14' }, false);
+  assert.deepEqual(next.map(({ load, reps }) => [load, reps]), [['14', '15'], ['12', '15'], ['12', '12']]);
+  assert.equal(next[0].loadSource, 'manual');
 });
 
-test('reps edit on S1 propagates only reps to later pending sets', () => {
-  const next = applyManualSetChange(sets([['14', '15'], ['16', '10'], ['18', '8']]), 0, { reps: '12' });
-  assert.deepEqual(next, sets([['14', '12'], ['16', '12'], ['18', '12']]));
+test('fills empty load and prescription reps independently', () => {
+  const next = applyManualSetChange([set('', '10'), set('', '10'), set('', '10')], 0, { load: '20', reps: '12' });
+  assert.deepEqual(next.map(({ load, reps }) => [load, reps]), [['20', '12'], ['20', '12'], ['20', '12']]);
+  assert.deepEqual(next.slice(1).map(({ loadSource, repsSource }) => [loadSource, repsSource]), [['autofilled', 'autofilled'], ['autofilled', 'autofilled']]);
 });
 
-test('editing S2 preserves S1 and propagates to every later set', () => {
-  const next = applyManualSetChange(sets([['14', '15'], ['12', '15'], ['12', '15'], ['12', '15']]), 1, { load: '16', reps: '12' });
-  assert.deepEqual(next, sets([['14', '15'], ['16', '12'], ['16', '12'], ['16', '12']]));
+test('history and manual values are protected per field', () => {
+  const next = applyManualSetChange([
+    set('12', '15', 'history', 'history'),
+    set('12', '15', 'history', 'history'),
+    set('', '8', 'empty', 'manual'),
+  ], 0, { load: '14', reps: '12' });
+  assert.deepEqual(next.map(({ load, reps }) => [load, reps]), [['14', '12'], ['12', '15'], ['14', '8']]);
+  assert.equal(next[1].loadSource, 'history');
+  assert.equal(next[2].repsSource, 'manual');
 });
 
-test('editing the final set never changes an earlier set', () => {
-  const next = applyManualSetChange(sets([['14', '15'], ['16', '15'], ['12', '15']]), 2, { load: '18', reps: '12' });
-  assert.deepEqual(next, sets([['14', '15'], ['16', '15'], ['18', '12']]));
+test('a later autofilled field can receive a newer propagation without changing earlier sets', () => {
+  let next = applyManualSetChange([set('', '10'), set('', '10'), set('', '10')], 0, { load: '20', reps: '12' });
+  next = applyManualSetChange(next, 1, { load: '22', reps: '10' });
+  assert.deepEqual(next.map(({ load, reps }) => [load, reps]), [['20', '12'], ['22', '10'], ['22', '10']]);
+  assert.deepEqual([next[1].loadSource, next[2].loadSource], ['manual', 'autofilled']);
 });
 
-test('completed later sets remain intact while pending sets after them receive the change', () => {
-  const next = applyManualSetChange(sets([['12', '15'], ['13', '14', true], ['12', '10'], ['11', '8', true], ['12', '6']]), 0, { load: '14' });
-  assert.deepEqual(next, sets([['14', '15'], ['13', '14', true], ['14', '10'], ['11', '8', true], ['14', '6']]));
+test('last-set edits never change earlier values', () => {
+  const next = applyManualSetChange([set('14', '15'), set('16', '12'), set('20', '10')], 2, { load: '24', reps: '8' });
+  assert.deepEqual(next.map(({ load, reps }) => [load, reps]), [['14', '15'], ['16', '12'], ['24', '8']]);
 });
 
-test('propagation leaves completion state pending and preserves unrelated fields', () => {
-  const next = applyManualSetChange(sets([['12', '15'], ['12', '10']]), 0, { reps: '12' });
-  assert.deepEqual(next, sets([['12', '12'], ['12', '12']]));
-  assert.ok(next.every((set) => !set.completed));
+test('completed sets are protected but do not block a later eligible set', () => {
+  const next = applyManualSetChange([set('', '10'), set('13', '14', 'history', 'history', true), set('', '10')], 0, { load: '20', reps: '12' });
+  assert.deepEqual(next.map(({ load, reps }) => [load, reps]), [['20', '12'], ['13', '14'], ['20', '12']]);
 });
 
-test('programmatic draft, option, replacement and rehydration values are untouched until a manual change is applied', () => {
-  const initial = sets([['30', '15'], ['40', '10'], ['50', '8']]);
-  assert.deepEqual(initial, sets([['30', '15'], ['40', '10'], ['50', '8']]));
-  const changed = applyManualSetChange(initial, 1, { reps: '12' });
-  assert.deepEqual(changed, sets([['30', '15'], ['40', '12'], ['50', '12']]));
-});
-
-test('distinct final values remain available for history after separate manual edits', () => {
-  let next = applyManualSetChange(sets([['12', '15'], ['12', '15'], ['12', '15']]), 0, { load: '14' });
-  next = applyManualSetChange(next, 1, { load: '16', reps: '12' });
-  next = applyManualSetChange(next, 2, { load: '18', reps: '10' });
-  assert.deepEqual(next, sets([['14', '15'], ['16', '12'], ['18', '10']]));
+test('legacy drafts without origins remain conservative after rehydration', () => {
+  const next = applyManualSetChange([
+    { load: '12', reps: '15', completed: false },
+    { load: '', reps: '', completed: false },
+  ], 0, { load: '14', reps: '12' });
+  assert.deepEqual(next.map(({ load, reps }) => [load, reps]), [['14', '12'], ['14', '12']]);
+  assert.equal(next[0].loadSource, 'manual');
+  assert.equal(next[1].loadSource, 'autofilled');
 });

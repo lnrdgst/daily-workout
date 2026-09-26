@@ -266,6 +266,12 @@ export const SettingsPage = () => {
           enabled={workoutSessionSettings.autoStartRestTimer}
           onClick={() => toggleWorkoutSessionSetting('autoStartRestTimer')}
         />
+        <AlertToggle
+          label="Preencher séries seguintes"
+          description="Usa seus novos valores apenas nas próximas séries ainda sem registro."
+          enabled={workoutSessionSettings.fillFollowingSets}
+          onClick={() => toggleWorkoutSessionSetting('fillFollowingSets')}
+        />
       </section>
 
       {workoutSessionSettings.autoStartRestTimer && (

@@ -149,7 +149,8 @@ test('changing prescribed options rebuilds sets from the new canonical history o
   assert.deepEqual(frenchSets.map(({ load, reps }) => ({ load, reps })), [
     { load: '30', reps: '15' }, { load: '40', reps: '10' }, { load: '40', reps: '8' },
   ]);
-  assert.deepEqual(ropeSets, Array.from({ length: 3 }, () => ({ load: '', reps: '10', completed: false })));
+  assert.deepEqual(ropeSets.map(({ load, reps, completed }) => ({ load, reps, completed })), Array.from({ length: 3 }, () => ({ load: '', reps: '10', completed: false })));
+  assert.ok(ropeSets.every((set) => set.loadSource === 'empty' && set.repsSource === 'prescription'));
   assert.deepEqual(frenchAgain.map(({ load, reps }) => ({ load, reps })), [
     { load: '30', reps: '15' }, { load: '40', reps: '10' }, { load: '40', reps: '8' },
   ]);

@@ -1,6 +1,7 @@
 export interface WorkoutSessionSettings {
   keepScreenAwake: boolean;
   autoStartRestTimer: boolean;
+  fillFollowingSets: boolean;
 }
 
 const STORAGE_KEY = 'daily-workout-session-settings';
@@ -8,6 +9,7 @@ const STORAGE_KEY = 'daily-workout-session-settings';
 export const defaultWorkoutSessionSettings: WorkoutSessionSettings = {
   keepScreenAwake: true,
   autoStartRestTimer: true,
+  fillFollowingSets: true,
 };
 
 export const loadWorkoutSessionSettings = (): WorkoutSessionSettings => {
@@ -24,6 +26,10 @@ export const loadWorkoutSessionSettings = (): WorkoutSessionSettings => {
         typeof parsed.autoStartRestTimer === 'boolean'
           ? parsed.autoStartRestTimer
           : defaultWorkoutSessionSettings.autoStartRestTimer,
+      fillFollowingSets:
+        typeof parsed.fillFollowingSets === 'boolean'
+          ? parsed.fillFollowingSets
+          : defaultWorkoutSessionSettings.fillFollowingSets,
     };
   } catch {
     return defaultWorkoutSessionSettings;

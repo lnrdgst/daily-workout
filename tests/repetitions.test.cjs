@@ -72,7 +72,8 @@ function row(initialReps) {
 
 test('first execution uses numeric repsMin for all sets and leaves load empty and sets pending', () => {
   const draft = storage.createWorkoutDraft(workout);
-  assert.deepEqual(draft.exercises[0].sets, Array.from({ length: 3 }, () => ({ load: '', reps: '8', completed: false })));
+  assert.deepEqual(draft.exercises[0].sets.map(({ load, reps, completed }) => ({ load, reps, completed })), Array.from({ length: 3 }, () => ({ load: '', reps: '8', completed: false })));
+  assert.ok(draft.exercises[0].sets.every((set) => set.loadSource === 'empty' && set.repsSource === 'prescription'));
   assert.deepEqual(draft.exercises[4].sets.map((set) => set.reps), ['12', '12', '12']);
   assert.equal(storage.getPreviousExercisePerformance([], workout.exercises[0].id), null);
 });
