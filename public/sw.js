@@ -3,7 +3,25 @@ const CACHE_NAME = 'daily-workout-v2';
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll(['/', '/manifest.webmanifest', '/favicon.svg', '/icon-192.svg', '/icon-512.svg']),
+      cache.addAll([
+        '/',
+        '/manifest.webmanifest',
+        '/manifest.webmanifest?v=teal-1',
+        '/manifest.webmanifest?v=teal-2',
+        '/favicon.svg',
+        '/favicon.svg?v=teal-1',
+        '/favicon.ico?v=teal-2',
+        '/favicon-32.teal-2.png',
+        '/apple-touch-icon.teal-2.png',
+        '/icon-192.svg',
+        '/icon-192.svg?v=teal-1',
+        '/icon-512.svg',
+        '/icon-512.svg?v=teal-1',
+        '/icon-192.teal-2.png',
+        '/icon-512.teal-2.png',
+        '/icon-maskable-192.teal-2.png',
+        '/icon-maskable-512.teal-2.png',
+      ]),
     ),
   );
   self.skipWaiting();
