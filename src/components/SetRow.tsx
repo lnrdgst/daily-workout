@@ -32,7 +32,7 @@ export const SetRow = ({ index, set, previousSet, onChange, onToggleCompleted }:
           type="button"
           onClick={onToggleCompleted}
           className={`touch-button min-w-20 px-3 py-2 text-xs font-semibold ${
-            set.completed ? 'bg-success text-white' : 'bg-white/10 text-zinc-200'
+            set.completed ? 'bg-success text-surface-950' : 'bg-white/10 text-zinc-200'
           }`}
         >
           {set.completed ? 'Feita' : 'Marcar'}

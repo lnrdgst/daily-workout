@@ -27,7 +27,7 @@ const AlertToggle = ({ label, description, enabled, disabled = false, onClick }:
     aria-label={`${label}: ${enabled ? 'ligado' : 'desligado'}`}
     disabled={disabled}
     onClick={onClick}
-    className={`flex min-h-12 w-full items-center justify-between rounded-2xl px-3 py-2 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
+    className={`flex min-h-12 w-full items-center justify-between rounded-2xl px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 disabled:cursor-not-allowed disabled:opacity-50 ${
       enabled ? 'bg-accent-500/10 text-zinc-100' : 'bg-white/5 text-zinc-300'
     }`}
   >
@@ -38,7 +38,7 @@ const AlertToggle = ({ label, description, enabled, disabled = false, onClick }:
     <span className="flex items-center gap-2 text-xs text-zinc-400">
       {enabled ? 'Ligado' : 'Desligado'}
       <span className={`relative h-5 w-9 rounded-full transition ${enabled ? 'bg-accent-500' : 'bg-white/15'}`} aria-hidden="true">
-        <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${enabled ? 'translate-x-4' : 'translate-x-0'}`} />
+        <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full transition-transform ${enabled ? 'translate-x-4 bg-accent-foreground' : 'translate-x-0 bg-white'}`} />
       </span>
     </span>
   </button>
@@ -232,7 +232,7 @@ export const SettingsPage = () => {
                 disabled={!alertSettings.sound}
                 onClick={() => setAlertVolume(option.value)}
                 className={`min-h-10 rounded-xl px-2 text-xs font-medium transition disabled:cursor-not-allowed ${
-                  alertSettings.volume === option.value ? 'bg-accent-500 text-white' : 'bg-white/5 text-zinc-300'
+                  alertSettings.volume === option.value ? 'accent-solid' : 'bg-white/5 text-zinc-300'
                 }`}
               >
                 {option.label}
@@ -287,7 +287,7 @@ export const SettingsPage = () => {
                 type="button"
                 onClick={() => setDefaultRestSeconds(seconds)}
                 className={`min-h-11 rounded-xl px-2 text-sm font-medium transition ${
-                  restTimerSettings.defaultRestSeconds === seconds ? 'bg-accent-500 text-white' : 'bg-white/5 text-zinc-300'
+                  restTimerSettings.defaultRestSeconds === seconds ? 'accent-solid' : 'bg-white/5 text-zinc-300'
                 }`}
               >
                 {seconds}s
@@ -309,7 +309,7 @@ export const SettingsPage = () => {
           <p className="mt-1 text-lg font-semibold">{state.history.length}</p>
         </div>
         <div className="border-t border-white/10 pt-4">
-          <button type="button" onClick={openClearHistoryDialog} className="touch-button w-full bg-danger text-white">
+          <button type="button" onClick={openClearHistoryDialog} className="touch-button w-full bg-danger text-surface-950">
             Apagar histórico local
           </button>
         </div>

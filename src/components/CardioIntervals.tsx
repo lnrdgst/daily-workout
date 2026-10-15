@@ -74,7 +74,7 @@ export const CardioIntervals = ({ draft }: { draft: CardioSessionDraft }) => {
               aria-pressed={seconds === String(value)} className={`touch-button flex-1 ${seconds === String(value) ? 'bg-accent-500/20 text-accent-300' : 'bg-white/5'}`}>{value}s</button>)}
           </div>
           <p className="text-xs text-zinc-500">Duração personalizada em segundos, de 1s até 24h.</p>
-          <button disabled={!valid || running} className="touch-button w-full bg-accent-500 text-white disabled:opacity-40">Salvar tiros</button>
+          <button disabled={!valid || running} className="touch-button w-full accent-solid disabled:opacity-40">Salvar tiros</button>
           <button type="button" onClick={() => setEditing(false)} className="touch-button w-full bg-white/5">Cancelar</button>
           {intervals && <button type="button" onClick={requestRemoval} className="touch-button w-full bg-white/5 text-zinc-300">Remover tiros</button>}
         </form>
@@ -90,7 +90,7 @@ export const CardioIntervals = ({ draft }: { draft: CardioSessionDraft }) => {
           ) : <p className="text-sm text-zinc-400">Duração do tiro: {intervals.durationSeconds}s</p>}
           {intervals.completedCount < intervals.targetCount && (
             <div className="grid gap-2">
-              {!running && <button type="button" onClick={startCardioInterval} className="touch-button bg-accent-500 text-white">Iniciar tiro</button>}
+              {!running && <button type="button" onClick={startCardioInterval} className="touch-button accent-solid">Iniciar tiro</button>}
               <button type="button" onClick={markCardioInterval} className="touch-button bg-white/10">Marcar tiro</button>
               {running && <button type="button" onClick={cancelCardioInterval} className="touch-button bg-white/5">Cancelar tiro</button>}
               {running && <button type="button" onClick={requestRemoval} className="touch-button bg-white/5">Treino contínuo</button>}

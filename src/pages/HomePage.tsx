@@ -110,7 +110,7 @@ export const HomePage = () => {
             {state.activeDraft.type === 'cardio'
               ? <p className="text-zinc-400">Tempo de atividade: {duration}</p>
               : <WorkoutProgress draft={state.activeDraft} />}
-            <Link to={getSessionPath(state.activeDraft)} className="touch-button w-full bg-accent-500 text-zinc-950">Continuar treino</Link>
+            <Link to={getSessionPath(state.activeDraft)} className="touch-button w-full accent-solid">Continuar treino</Link>
           </section>
         ) : (
           <>
@@ -119,7 +119,7 @@ export const HomePage = () => {
                 <p className="text-xs uppercase tracking-[0.24em] text-accent-300">Próximo treino de musculação</p>
                 <h3 className="break-words text-2xl font-bold">{nextWorkout.name}</h3>
                 <p className="text-sm text-zinc-400">{nextWorkout.exercises.length} {nextWorkout.exercises.length === 1 ? 'exercício' : 'exercícios'}</p>
-                <Link to={`/workout/${nextWorkout.id}`} state={{ origin: 'home-next-workout' }} className="touch-button w-full bg-accent-500 text-zinc-950">Ver treino {nextWorkout.id}</Link>
+                <Link to={`/workout/${nextWorkout.id}`} state={{ origin: 'home-next-workout' }} className="touch-button w-full accent-solid">Ver treino {nextWorkout.id}</Link>
               </section>
             )}
             <button ref={selectorButtonRef} type="button" onClick={() => setSelectorOpen(true)} aria-haspopup="dialog"

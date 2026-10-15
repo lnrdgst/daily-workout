@@ -80,12 +80,12 @@ export const ConfirmDialog = ({
             type="button"
             onClick={onConfirm}
             disabled={confirmDisabled}
-            className={`touch-button font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 ${destructive ? 'bg-danger' : 'bg-accent-500'}`}
+            className={`touch-button font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${destructive ? 'bg-danger text-surface-950' : 'accent-solid'}`}
           >
             {confirmLabel}
           </button>}
           {additionalAction && (
-            <button type="button" onClick={additionalAction.onClick} className="touch-button bg-danger font-semibold text-white">
+            <button type="button" onClick={additionalAction.onClick} className="touch-button bg-danger font-semibold text-surface-950">
               {additionalAction.label}
             </button>
           )}

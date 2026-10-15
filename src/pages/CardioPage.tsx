@@ -46,9 +46,9 @@ export const CardioPage = () => {
             {state.activeDraft ? (
               <>
                 <p className="mt-3 text-sm text-zinc-300">Há um treino em andamento. Finalize ou descarte essa sessão antes de iniciar outra.</p>
-                <Link to={getSessionPath(state.activeDraft)} className="touch-button mt-4 w-full bg-accent-500 text-white">Voltar ao treino</Link>
+                <Link to={getSessionPath(state.activeDraft)} className="touch-button mt-4 w-full accent-solid">Voltar ao treino</Link>
               </>
-            ) : <button type="button" onClick={() => startCardio(modality)} className="touch-button mt-5 w-full bg-accent-500 text-white">Iniciar treino</button>}
+            ) : <button type="button" onClick={() => startCardio(modality)} className="touch-button mt-5 w-full accent-solid">Iniciar treino</button>}
           </>
         )}
       </section>
@@ -72,7 +72,7 @@ export const CardioPage = () => {
                 placeholder="Opcional" className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-base outline-none focus:border-accent-400" />
             </label>
           </section>
-          <button type="button" onClick={() => setDialog(isShortCardioSession(draft) ? 'short' : 'finish')} className="touch-button w-full bg-accent-500 text-base font-semibold text-white">Finalizar treino</button>
+          <button type="button" onClick={() => setDialog(isShortCardioSession(draft) ? 'short' : 'finish')} className="touch-button w-full accent-solid text-base font-semibold">Finalizar treino</button>
           <button type="button" onClick={() => setDialog('discard')} className="touch-button w-full bg-white/5 text-zinc-300">Descartar treino</button>
         </>
       )}

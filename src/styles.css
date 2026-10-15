@@ -5,10 +5,16 @@
 @tailwind utilities;
 
 :root {
+  /* Daily Workout identity. RGB channels keep Tailwind opacity modifiers available. */
+  --color-accent-600: 87 153 143; /* #57998F: pressed */
+  --color-accent-500: 113 175 165; /* #71AFA5: primary */
+  --color-accent-400: 145 197 188; /* #91C5BC: hover and focus */
+  --color-accent-300: 179 220 213; /* #B3DCD5: text and subtle selections */
+  --color-accent-foreground: 9 9 11; /* #09090B: text on solid accents */
   color-scheme: dark;
   font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   background:
-    radial-gradient(circle at top, rgba(249, 115, 22, 0.12), transparent 30%),
+    radial-gradient(circle at top, rgb(var(--color-accent-500) / 0.12), transparent 30%),
     linear-gradient(180deg, #111115 0%, #09090b 60%);
   background-color: #09090b;
   color: #f4f4f5;
@@ -79,6 +85,15 @@ input[type='number'] {
   }
 
   .touch-button {
-    @apply inline-flex min-h-12 items-center justify-center rounded-2xl px-4 py-3 text-sm font-medium transition active:scale-[0.98];
+    @apply inline-flex min-h-12 items-center justify-center rounded-2xl px-4 py-3 text-sm font-medium transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-950;
+  }
+
+  .accent-solid {
+    @apply bg-accent-500 text-accent-foreground enabled:hover:bg-accent-400 enabled:active:bg-accent-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-950;
+  }
+
+  /* Links have no enabled/disabled state. */
+  a.accent-solid {
+    @apply hover:bg-accent-400 active:bg-accent-600;
   }
 }

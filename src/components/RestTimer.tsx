@@ -52,7 +52,7 @@ export const RestTimer = () => {
       ? { label: 'Parar descanso', icon: <Square size={16} fill="currentColor" />, className: 'bg-white/15 text-zinc-100' }
       : restTimer.status === 'finished'
         ? { label: 'Repetir descanso', icon: <RotateCcw size={18} />, className: 'bg-white/10 text-accent-300' }
-        : { label: 'Iniciar descanso', icon: <Play size={18} fill="currentColor" />, className: 'bg-accent-500 text-white' };
+        : { label: 'Iniciar descanso', icon: <Play size={18} fill="currentColor" />, className: 'accent-solid' };
 
   return (
     <aside className="fixed bottom-[env(safe-area-inset-bottom)] left-1/2 z-30 w-[calc(100%-1rem)] max-w-md -translate-x-1/2 rounded-2xl border border-white/10 bg-surface-900/95 p-2 shadow-glow backdrop-blur">

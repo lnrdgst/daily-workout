@@ -91,7 +91,7 @@ const showTimerFinishedNotification = (title: string, body: string, tag: string)
   try {
     new Notification(title, {
       body,
-      icon: '/icon-192.svg',
+      icon: '/icon-192.svg?v=teal-1',
       tag,
     });
   } catch {

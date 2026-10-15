@@ -193,7 +193,7 @@ export const WorkoutPage = () => {
             <button
               type="button"
               onClick={handleFinishRequest}
-              className="touch-button w-full bg-accent-500 text-base font-semibold text-white"
+              className="touch-button w-full accent-solid text-base font-semibold"
             >
               Finalizar treino
             </button>
@@ -205,13 +205,13 @@ export const WorkoutPage = () => {
             <p className="text-xs uppercase tracking-[0.24em] text-accent-300">Modo visualização</p>
             <p className="mt-2 text-sm text-zinc-400">Consulte sua ficha. Nenhuma sessão será criada até você iniciar o treino.</p>
             {state.activeDraft?.type === 'cardio' ? (
-              <Link to={getSessionPath(state.activeDraft)} className="touch-button mt-5 w-full bg-accent-500 text-white">
+              <Link to={getSessionPath(state.activeDraft)} className="touch-button mt-5 w-full accent-solid">
                 Voltar à atividade em andamento
               </Link>
             ) : <button
               type="button"
               onClick={() => startWorkout(workoutId)}
-              className="touch-button mt-5 w-full bg-accent-500 text-base font-semibold text-white"
+              className="touch-button mt-5 w-full accent-solid text-base font-semibold"
             >
               Iniciar treino
             </button>}

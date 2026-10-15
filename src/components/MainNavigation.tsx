@@ -19,7 +19,7 @@ export const MainNavigation = ({ className, style }: MainNavigationProps) => (
         key={item.to}
         to={item.to}
         className={({ isActive }) =>
-          `touch-button flex-1 rounded-2xl ${isActive ? 'bg-accent-500 text-white' : 'bg-white/5 text-zinc-300'}`
+          `touch-button flex-1 rounded-2xl ${isActive ? 'accent-solid' : 'bg-white/5 text-zinc-300'}`
         }
       >
         {item.label}

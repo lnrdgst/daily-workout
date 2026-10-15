@@ -9,7 +9,7 @@ export const SplashScreen = ({ isExiting }: SplashScreenProps) => {
       aria-label="Abrindo Daily Workout"
     >
       <div className={`text-center ${isExiting ? 'splash-screen-exit' : 'splash-screen-enter'}`}>
-        <img src="/favicon.svg" alt="" className="mx-auto h-24 w-24" />
+        <img src="/favicon.svg?v=teal-1" alt="" className="mx-auto h-24 w-24" />
         <p className="mt-6 text-sm font-bold tracking-[0.32em] text-accent-300">DAILY WORKOUT</p>
         <p className="mt-3 text-sm text-zinc-400">Seu treino diário de bolso.</p>
       </div>
