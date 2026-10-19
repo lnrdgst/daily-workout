@@ -26,6 +26,7 @@ export const ExerciseCard = ({
   secondaryAction,
 }: ExerciseCardProps) => {
   const completedSets = sessionState.sets.filter((set) => set.completed).length;
+  const nextPendingIndex = sessionState.sets.findIndex((set) => !set.completed);
   const isCompleted = sessionState.sets.length > 0 && completedSets === sessionState.sets.length;
   const [isExpanded, setIsExpanded] = useState(() => !isCompleted);
   const wasCompletedRef = useRef(isCompleted);
@@ -109,6 +110,8 @@ export const ExerciseCard = ({
               <SetRow
                 key={`${exercise.id}-${index}`}
                 index={index}
+                exerciseName={exercise.name}
+                isNextPending={index === nextPendingIndex}
                 set={set}
                 previousSet={previousSets?.[index]}
                 onChange={(patch) => onSetChange(index, patch)}

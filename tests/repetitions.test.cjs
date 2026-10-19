@@ -61,12 +61,11 @@ test('shared duration stepper clamps buttons, keeps edits until blur and has no 
 function row(initialReps) {
   let set = { reps: initialReps, load: '', completed: false };
   const { SetRow } = loadModule('src/components/SetRow.tsx', { react: { useId: () => 'reps-test', useState: (value) => [value, () => {}], useEffect: () => {} } });
-  const render = () => descendants(SetRow({ index: 0, set, onChange: (patch) => { set = { ...set, ...patch }; } }));
+  const render = () => descendants(SetRow({ index: 0, exerciseName: 'Supino reto', isNextPending: true, set, onChange: (patch) => { set = { ...set, ...patch }; } }));
   return {
     value: () => set,
     nodes: render,
     click: (label) => render().find((node) => node.props?.['aria-label'] === label).props.onClick(),
-    type: (value) => render().find((node) => node.props?.id === 'reps-test').props.onChange({ target: { value } }),
   };
 }
 
@@ -100,6 +99,8 @@ test('explicit buttons increment/decrement history values, clamp zero and safely
     ['12', 'Aumentar repetições', '13'], ['12', 'Diminuir repetições', '11'],
     ['0', 'Diminuir repetições', '0'], ['', 'Aumentar repetições', '1'],
     ['', 'Diminuir repetições', '0'], ['NaN', 'Aumentar repetições', '1'],
+    ['18.5', 'Aumentar repetições', '19.5'], ['18.5', 'Diminuir repetições', '17.5'],
+    ['0.5', 'Diminuir repetições', '0'],
   ]) {
     const control = row(initial);
     control.click(label);
@@ -107,15 +108,13 @@ test('explicit buttons increment/decrement history values, clamp zero and safely
   }
 });
 
-test('manual input permits clearing and digits, rejects negatives, decimals and invalid numbers, and retains numeric keyboard', () => {
+test('set repetitions open a custom editor through a button instead of a native text input', () => {
   const control = row('8');
-  control.type('');
-  assert.equal(control.value().reps, '');
-  control.type('15');
-  for (const invalid of ['-1', '1.5', 'NaN', 'Infinity', '1e3']) control.type(invalid);
-  assert.equal(control.value().reps, '15');
-  const input = control.nodes().find((node) => node.props?.id === 'reps-test');
-  assert.equal(input.props.inputMode, 'numeric');
+  const editor = control.nodes().find((node) => node.props?.id === 'reps-test');
+  assert.equal(editor.type, 'button');
+  assert.equal(editor.props['aria-haspopup'], 'dialog');
+  assert.ok(editor.props['aria-label'].includes('Supino reto, série 1'));
+  assert.ok(!control.nodes().some((node) => node.type === 'input'));
   assert.equal(control.nodes().find((node) => node.props?.htmlFor === 'reps-test').props.children, 'Reps');
 });
 
