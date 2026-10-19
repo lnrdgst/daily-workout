@@ -53,15 +53,15 @@ export const createExerciseSets = (
 const createExerciseState = (prescription: Workout['exercises'][number], previousSets: ExerciseSetLog[] | null = null): ExerciseSessionState => {
   const exercise = getWorkoutExerciseView(prescription);
   const options = prescription.prescribedExerciseIds ?? [prescription.prescribedExerciseId];
-  const hasOptions = options.length > 1;
   return {
     // exerciseId remains the stable slot identifier for legacy drafts and rest timers.
     exerciseId: prescription.id,
     slotId: prescription.id,
     prescribedExerciseIds: options,
-    ...(hasOptions ? {} : { prescribedExerciseId: prescription.prescribedExerciseId, executedExerciseId: prescription.prescribedExerciseId }),
+    prescribedExerciseId: prescription.prescribedExerciseId,
+    executedExerciseId: prescription.prescribedExerciseId,
     prescribedExerciseName: exercise.name,
-    ...(hasOptions ? {} : { executedExerciseName: exercise.name }),
+    executedExerciseName: exercisesById[prescription.prescribedExerciseId].name,
     muscleGroup: exercise.muscleGroup,
     sets: createExerciseSets(prescription, previousSets),
   };
@@ -71,7 +71,8 @@ export const createWorkoutDraft = (workout: Workout, history: SessionHistory[] =
   type: 'strength',
   workoutId: workout.id,
   startedAt: new Date().toISOString(),
-  exercises: workout.exercises.map((exercise) => createExerciseState(exercise, (exercise.prescribedExerciseIds?.length ?? 1) > 1 ? null : getPreviousExercisePerformance(history, exercise.prescribedExerciseId))),
+  // Only new sessions run this builder. Resumed drafts keep their existing values.
+  exercises: workout.exercises.map((exercise) => createExerciseState(exercise, getPreviousExercisePerformance(history, exercise.prescribedExerciseId))),
 });
 
 const defaultState: WorkoutAppState = {

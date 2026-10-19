@@ -81,11 +81,13 @@ test('legacy drafts remain readable without normalization or localStorage reset'
   assert.deepEqual(persistent.loadAppState().activeDraft, legacyDraft);
 });
 
-test('prescribed alternatives remain unselected until the session chooses a physical exercise', () => {
+test('prescribed alternatives start with the principal canonical exercise without reading ambiguous legacy history', () => {
   const draft = storage.createWorkoutDraft(workoutsById.C, [{ exercises: [{ exerciseId: 'leg-curl-a', sets: sets('55', '10') }] }]);
   const curl = draft.exercises.find((exercise) => exercise.exerciseId === 'leg-curl-c');
   assert.deepEqual(curl.prescribedExerciseIds, ['lying-leg-curl', 'seated-leg-curl']);
-  assert.equal(curl.executedExerciseId, undefined);
+  assert.equal(curl.prescribedExerciseId, 'lying-leg-curl');
+  assert.equal(curl.executedExerciseId, 'lying-leg-curl');
+  assert.equal(curl.executedExerciseName, 'Mesa flexora');
   assert.equal(curl.sets[0].load, '');
   assert.equal(curl.sets[0].reps, '10');
   assert.equal(curl.slotId, 'leg-curl-c');
@@ -156,10 +158,14 @@ test('changing prescribed options rebuilds sets from the new canonical history o
   ]);
 });
 
-test('an unselected multi-option card does not request its first option history', () => {
+test('a resumed unselected legacy card does not infer its first option or request its history', () => {
   const ExerciseCard = () => null;
   const component = () => null;
   const draft = storage.createWorkoutDraft(workoutsById.B);
+  const legacyExercise = draft.exercises.find((exercise) => exercise.exerciseId === 'triceps-french');
+  delete legacyExercise.prescribedExerciseId;
+  delete legacyExercise.executedExerciseId;
+  delete legacyExercise.executedExerciseName;
   const calls = [];
   const mocks = {
     react: { useState: () => [null, () => {}] },

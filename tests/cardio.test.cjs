@@ -97,7 +97,7 @@ test('cardio does not change ABC sequence, previous sets or last strength sessio
   const saved = cardio.buildCardioHistoryEntry(cardio.createCardioDraft('walking'));
   const mixed = [legacy[0], saved, legacy[1], saved, legacy[2]];
   assert.deepEqual(getWorkoutSequenceProgress(mixed), { completedSequences: 1, currentStep: 0 });
-  assert.deepEqual(storage.getPreviousExercisePerformance(mixed, 'squat-hack'), legacy[0].exercises[0].sets);
+  assert.deepEqual(storage.getPreviousExercisePerformance(mixed, 'squat'), legacy[2].exercises[0].sets);
   assert.equal(storage.getLastWorkout([...mixed, saved], 'C'), legacy[2]);
 });
 
