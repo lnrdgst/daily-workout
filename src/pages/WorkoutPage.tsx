@@ -17,6 +17,7 @@ import type { WorkoutProgressSummary } from '@/utils/workoutProgress';
 import { getWorkoutProgress } from '@/utils/workoutProgress';
 import { getSessionPath } from '@/utils/sessions';
 import { getRelatedAutomaticRestId } from '@/utils/setCompletion';
+import { getDraftExercisePrescription } from '@/utils/workoutDraft';
 import type { SetCompletionTarget } from '@/types/workout';
 
 type WorkoutSessionIndicatorProps = {
@@ -71,6 +72,16 @@ export const WorkoutPage = () => {
   const workoutId = id === 'A' || id === 'B' || id === 'C' ? id : null;
   const workout = workoutId ? workoutsById[workoutId] : null;
   const activeDraft = state.activeDraft?.type !== 'cardio' && state.activeDraft?.workoutId === workoutId ? state.activeDraft : null;
+  const getActiveExercise = (slotId: string | null) => activeDraft?.exercises.find((item) => (item.slotId ?? item.exerciseId) === slotId);
+  const optionExercise = getActiveExercise(optionSlotId);
+  const optionPrescription = activeDraft && optionExercise ? getDraftExercisePrescription(activeDraft, optionExercise) : null;
+  const replacementExercise = getActiveExercise(replacementSlotId);
+  const replacementPrescription = activeDraft && replacementExercise ? getDraftExercisePrescription(activeDraft, replacementExercise) : null;
+  const isReplaced = Boolean(replacementExercise?.executedExerciseId && replacementExercise.executedExerciseId !== replacementPrescription?.prescribedExerciseId);
+  const replacementIds = replacementPrescription ? [
+    ...(isReplaced ? [replacementPrescription.prescribedExerciseId] : []),
+    ...(replacementPrescription.compatibleExerciseIds ?? []),
+  ] : [];
   const duration = useWorkoutDuration(activeDraft?.startedAt);
   const progress = activeDraft ? getWorkoutProgress(activeDraft) : null;
   const hasCompletedSet = activeDraft?.exercises.some((exercise) => exercise.sets.some((set) => set.completed)) ?? false;
@@ -158,19 +169,19 @@ export const WorkoutPage = () => {
           <RestTimer />
 
           <section className="space-y-4">
-            {workout.exercises.map((prescription) => {
-              const exercise = getWorkoutExerciseView(prescription);
-              const sessionState = activeDraft.exercises.find((item) => (item.slotId ?? item.exerciseId) === prescription.id);
-              if (!sessionState) {
-                return null;
-              }
-
-              const options = prescription.prescribedExerciseIds ?? [prescription.prescribedExerciseId];
-              const canChoose = options.length > 1 && !sessionState.executedExerciseId;
-              const canChange = options.length > 1 && !!sessionState.executedExerciseId && !sessionState.sets.some((set) => set.completed);
-              const displayedExercise = sessionState.executedExerciseId ? { ...exercise, ...exercisesById[sessionState.executedExerciseId], id: prescription.id } : exercise;
-              const replacementIds = sessionState.prescribedExerciseId && !sessionState.sets.some((set) => set.completed)
-                ? exercisesById[sessionState.prescribedExerciseId]?.compatibleExerciseIds ?? [] : [];
+            {activeDraft.exercises.map((sessionState) => {
+              const prescription = getDraftExercisePrescription(activeDraft, sessionState);
+              const options = prescription.prescribedExerciseIds ?? [];
+              const hasCompletedSeries = sessionState.sets.some((set) => set.completed);
+              const canPickOption = options.length > 1 && !hasCompletedSeries;
+              const executed = sessionState.executedExerciseId ? exercisesById[sessionState.executedExerciseId] : undefined;
+              const displayedExercise = {
+                ...prescription,
+                icon: executed?.icon ?? prescription.icon,
+                name: sessionState.executedExerciseName ?? executed?.name ?? prescription.name,
+                muscleGroup: executed?.muscleGroup ?? prescription.muscleGroup,
+              };
+              const canReplace = !hasCompletedSeries && Boolean(prescription.compatibleExerciseIds?.length);
               return (
                 <div key={prescription.id}>
                   <ExerciseCard
@@ -181,8 +192,8 @@ export const WorkoutPage = () => {
                   onToggleCompleted={(setIndex, isCurrentlyCompleted) =>
                     handleSetCompletedToggle(sessionState.exerciseId, setIndex, isCurrentlyCompleted)
                   }
-                  optionAction={canChoose || canChange ? { label: canChoose ? 'Escolher exercício' : 'Trocar exercício', onClick: () => setOptionSlotId(prescription.id) } : undefined}
-                  secondaryAction={replacementIds.length ? { label: sessionState.executedExerciseId && sessionState.executedExerciseId !== sessionState.prescribedExerciseId ? 'Trocar exercício' : 'Substituir exercício', onClick: () => setReplacementSlotId(prescription.id) } : undefined}
+                  optionAction={canPickOption ? { label: sessionState.executedExerciseId ? 'Trocar exercício' : 'Escolher exercício', onClick: () => setOptionSlotId(prescription.id) } : undefined}
+                  secondaryAction={canReplace ? { label: sessionState.executedExerciseId && sessionState.executedExerciseId !== prescription.prescribedExerciseId ? 'Trocar exercício' : 'Substituir exercício', onClick: () => setReplacementSlotId(prescription.id) } : undefined}
                 />
                 </div>
               );
@@ -204,9 +215,9 @@ export const WorkoutPage = () => {
           <section className="panel p-5">
             <p className="text-xs uppercase tracking-[0.24em] text-accent-300">Modo visualização</p>
             <p className="mt-2 text-sm text-zinc-400">Consulte sua ficha. Nenhuma sessão será criada até você iniciar o treino.</p>
-            {state.activeDraft?.type === 'cardio' ? (
+            {state.activeDraft ? (
               <Link to={getSessionPath(state.activeDraft)} className="touch-button mt-5 w-full accent-solid">
-                Voltar à atividade em andamento
+                {state.activeDraft.type === 'cardio' ? 'Voltar à atividade em andamento' : 'Voltar ao treino em andamento'}
               </Link>
             ) : <button
               type="button"
@@ -245,7 +256,7 @@ export const WorkoutPage = () => {
 
       <ConfirmDialog
         open={replacementSlotId !== null}
-        title={replacementSlotId && activeDraft?.exercises.find((item) => (item.slotId ?? item.exerciseId) === replacementSlotId)?.executedExerciseId !== activeDraft?.exercises.find((item) => (item.slotId ?? item.exerciseId) === replacementSlotId)?.prescribedExerciseId ? 'Trocar exercício' : 'Substituir exercício'}
+        title={isReplaced ? 'Trocar exercício' : 'Substituir exercício'}
         description="Escolha uma alternativa para esta sessão."
         cancelLabel="Cancelar"
         confirmLabel={undefined}
@@ -253,13 +264,11 @@ export const WorkoutPage = () => {
         onConfirm={() => {}}
       >
         <div className="mt-4 grid gap-2">
-          {replacementSlotId && (() => {
-            const stateExercise = activeDraft?.exercises.find((item) => (item.slotId ?? item.exerciseId) === replacementSlotId);
-            const compatible = stateExercise?.prescribedExerciseId ? exercisesById[stateExercise.prescribedExerciseId]?.compatibleExerciseIds ?? [] : [];
-            const ids = stateExercise?.executedExerciseId && stateExercise.executedExerciseId !== stateExercise.prescribedExerciseId
-              ? [stateExercise.prescribedExerciseId!, ...compatible] : compatible;
-            return ids.map((optionId) => <button key={optionId} type="button" onClick={() => { replaceExercise(replacementSlotId, optionId); setReplacementSlotId(null); }} className="touch-button bg-white/10 text-left text-zinc-100">{exercisesById[optionId].name}</button>);
-          })()}
+          {replacementSlotId && replacementIds.map((optionId) => (
+            <button key={optionId} type="button" onClick={() => { replaceExercise(replacementSlotId, optionId); setReplacementSlotId(null); }} className="touch-button bg-white/10 text-left text-zinc-100">
+              {exercisesById[optionId].name}
+            </button>
+          ))}
         </div>
       </ConfirmDialog>
 
@@ -274,7 +283,7 @@ export const WorkoutPage = () => {
         onConfirm={() => {}}
       >
         <div className="mt-4 grid gap-2">
-          {optionSlotId && workout.exercises.find((item) => item.id === optionSlotId)?.prescribedExerciseIds?.map((optionId) => (
+          {optionSlotId && optionPrescription?.prescribedExerciseIds?.map((optionId) => (
             <button key={optionId} type="button" onClick={() => { selectExerciseOption(optionSlotId, optionId); setOptionSlotId(null); }} className="touch-button bg-white/10 text-left text-zinc-100">
               {exercisesById[optionId].name}
             </button>

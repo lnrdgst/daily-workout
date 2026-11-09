@@ -1,6 +1,6 @@
-import { workoutsById } from '@/data/workouts';
 import { exercisesById, getWorkoutExerciseView, resolveCanonicalExerciseId } from '@/data/exercises';
 import { isStrengthHistory } from '@/utils/sessions';
+import { getDraftExercisePrescription, getDraftWorkoutName } from '@/utils/workoutDraft';
 import type {
   ExerciseSessionState,
   ExerciseSetLog,
@@ -20,14 +20,6 @@ export const defaultRestTimerState: RestTimerSessionState = {
   selectedSeconds: 90,
   endAt: null,
 };
-
-const createSetLog = (): ExerciseSetLog => ({
-  load: '',
-  reps: '',
-  completed: false,
-  loadSource: 'empty',
-  repsSource: 'empty',
-});
 
 const normalizeSetValue = (value: unknown): string => (typeof value === 'string' ? value : '');
 
@@ -52,17 +44,22 @@ export const createExerciseSets = (
 
 const createExerciseState = (prescription: Workout['exercises'][number], previousSets: ExerciseSetLog[] | null = null): ExerciseSessionState => {
   const exercise = getWorkoutExerciseView(prescription);
-  const options = prescription.prescribedExerciseIds ?? [prescription.prescribedExerciseId];
+  const definition = exercisesById[prescription.prescribedExerciseId];
   return {
     // exerciseId remains the stable slot identifier for legacy drafts and rest timers.
     exerciseId: prescription.id,
     slotId: prescription.id,
-    prescribedExerciseIds: options,
+    prescribedExerciseIds: [...(prescription.prescribedExerciseIds ?? [prescription.prescribedExerciseId])],
     prescribedExerciseId: prescription.prescribedExerciseId,
     executedExerciseId: prescription.prescribedExerciseId,
     prescribedExerciseName: exercise.name,
-    executedExerciseName: exercisesById[prescription.prescribedExerciseId].name,
+    executedExerciseName: definition.name,
     muscleGroup: exercise.muscleGroup,
+    prescription: {
+      repsMin: prescription.repsMin,
+      repsMax: prescription.repsMax,
+      compatibleExerciseIds: [...(definition.compatibleExerciseIds ?? [])],
+    },
     sets: createExerciseSets(prescription, previousSets),
   };
 };
@@ -70,6 +67,7 @@ const createExerciseState = (prescription: Workout['exercises'][number], previou
 export const createWorkoutDraft = (workout: Workout, history: SessionHistory[] = []): WorkoutSessionDraft => ({
   type: 'strength',
   workoutId: workout.id,
+  workoutName: workout.name,
   startedAt: new Date().toISOString(),
   // Only new sessions run this builder. Resumed drafts keep their existing values.
   exercises: workout.exercises.map((exercise) => createExerciseState(exercise, getPreviousExercisePerformance(history, exercise.prescribedExerciseId))),
@@ -142,38 +140,33 @@ export const saveAppState = (state: WorkoutAppState): void => {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 };
 
-export const buildHistoryEntry = (draft: WorkoutSessionDraft): WorkoutSessionHistory => {
-  const workout = workoutsById[draft.workoutId];
-
-  return {
-    type: 'strength',
-    id: `${draft.workoutId}-${Date.now()}`,
-    workoutId: draft.workoutId,
-    workoutName: workout.name,
-    startedAt: draft.startedAt,
-    finishedAt: new Date().toISOString(),
-    exercises: workout.exercises.map((prescription) => {
-      const exercise = getWorkoutExerciseView(prescription);
-      const sessionExercise = draft.exercises.find((item) => (item.slotId ?? item.exerciseId) === prescription.id);
-      const prescribedExerciseId = sessionExercise?.prescribedExerciseId ?? prescription.prescribedExerciseId;
-      const executedExerciseId = sessionExercise?.executedExerciseId ?? (sessionExercise?.prescribedExerciseIds && sessionExercise.prescribedExerciseIds.length > 1
-        ? resolveCanonicalExerciseId(prescription.id) : prescribedExerciseId);
-      const prescribedExerciseName = sessionExercise?.prescribedExerciseName ?? exercise.name;
-      const executedExerciseName = sessionExercise?.executedExerciseName ?? prescribedExerciseName;
-      return {
-        // Keep the legacy field while making the executed canonical identity explicit.
-        exerciseId: executedExerciseId,
-        exerciseName: executedExerciseName,
-        muscleGroup: sessionExercise?.muscleGroup ?? exercise.muscleGroup,
-        prescribedExerciseId,
-        executedExerciseId,
-        prescribedExerciseName,
-        executedExerciseName,
-        sets: (sessionExercise?.sets ?? Array.from({ length: prescription.sets }, createSetLog)).map(({ load, reps, completed }) => ({ load, reps, completed })),
-      };
-    }),
-  };
-};
+export const buildHistoryEntry = (draft: WorkoutSessionDraft): WorkoutSessionHistory => ({
+  type: 'strength',
+  id: `${draft.workoutId}-${Date.now()}`,
+  workoutId: draft.workoutId,
+  workoutName: getDraftWorkoutName(draft),
+  startedAt: draft.startedAt,
+  finishedAt: new Date().toISOString(),
+  exercises: draft.exercises.map((sessionExercise) => {
+    const prescription = getDraftExercisePrescription(draft, sessionExercise);
+    const { prescribedExerciseId, name: prescribedExerciseName } = prescription;
+    // A legacy slot with an unresolved choice cannot identify a physical variant.
+    const executedExerciseId = sessionExercise.executedExerciseId ?? ((prescription.prescribedExerciseIds?.length ?? 0) > 1
+      ? resolveCanonicalExerciseId(prescription.id) : prescribedExerciseId);
+    const executedExerciseName = sessionExercise.executedExerciseName ?? exercisesById[executedExerciseId]?.name ?? prescribedExerciseName;
+    return {
+      // Keep the legacy field while making the executed canonical identity explicit.
+      exerciseId: executedExerciseId,
+      exerciseName: executedExerciseName,
+      muscleGroup: prescription.muscleGroup,
+      prescribedExerciseId,
+      executedExerciseId,
+      prescribedExerciseName,
+      executedExerciseName,
+      sets: sessionExercise.sets.map(({ load, reps, completed }) => ({ load, reps, completed })),
+    };
+  }),
+});
 
 export const getPreviousExercisePerformance = (
   history: SessionHistory[],

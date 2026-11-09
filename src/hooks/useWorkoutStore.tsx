@@ -19,6 +19,7 @@ import { undoCompletedSet } from '@/utils/setCompletion';
 import { loadRestAlertSettings } from '@/utils/restAlertSettings';
 import { buildRecoveredCardioHistoryEntry } from '@/utils/cardioRecovery';
 import { applyManualSetChange } from '@/utils/setPropagation';
+import { getDraftExercisePrescription } from '@/utils/workoutDraft';
 import { loadWorkoutSessionSettings } from '@/utils/workoutSessionSettings';
 import type { CardioRecoveryInput } from '@/utils/cardioRecovery';
 import type { CardioData, CardioModality, CardioSessionDraft, ExerciseSetLog, RestTimerSessionState, SetCompletionTarget, WorkoutAppState, WorkoutId, WorkoutSessionHistory } from '@/types/workout';
@@ -171,14 +172,11 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
       removeCardioIntervals: () => changeCardio(removeIntervals),
       startWorkout: (workoutId) => {
         setState((current) => {
-          if (current.activeDraft?.type === 'cardio') return current;
-          const isResumingDraft = current.activeDraft?.workoutId === workoutId;
-          const activeDraft = isResumingDraft ? current.activeDraft : createWorkoutDraft(workoutsById[workoutId], current.history);
-
+          if (current.activeDraft) return current;
           return {
             ...current,
-            activeDraft,
-            restTimer: isResumingDraft ? current.restTimer : defaultRestTimerState,
+            activeDraft: createWorkoutDraft(workoutsById[workoutId], current.history),
+            restTimer: defaultRestTimerState,
             lastOpenedWorkoutId: workoutId,
           };
         });
@@ -372,12 +370,12 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
           if (!current.activeDraft || current.activeDraft.type === 'cardio') return current;
           const target = current.activeDraft.exercises.find((exercise) => (exercise.slotId ?? exercise.exerciseId) === slotId);
           if (!target || target.sets.some((set) => set.completed)) return current;
-          const prescription = workoutsById[current.activeDraft.workoutId].exercises.find((exercise) => exercise.id === slotId);
-          if (!prescription) return current;
+          const prescription = getDraftExercisePrescription(current.activeDraft, target);
+          if (!prescription.prescribedExerciseIds?.includes(exerciseId) || !exercisesById[exerciseId]) return current;
           const previousSets = getPreviousExercisePerformance(current.history, exerciseId);
           return { ...current, activeDraft: { ...current.activeDraft, exercises: current.activeDraft.exercises.map((exercise) =>
             (exercise.slotId ?? exercise.exerciseId) !== slotId ? exercise : {
-              ...exercise, executedExerciseId: exerciseId, executedExerciseName: exercisesById[exerciseId]?.name,
+              ...exercise, executedExerciseId: exerciseId, executedExerciseName: exercisesById[exerciseId].name,
               sets: createExerciseSets(prescription, previousSets),
             }), } };
         });
@@ -387,10 +385,9 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
           if (!current.activeDraft || current.activeDraft.type === 'cardio') return current;
           const target = current.activeDraft.exercises.find((exercise) => (exercise.slotId ?? exercise.exerciseId) === slotId);
           if (!target || target.sets.some((set) => set.completed)) return current;
-          const prescription = workoutsById[current.activeDraft.workoutId].exercises.find((exercise) => exercise.id === slotId);
-          if (!prescription) return current;
-          const prescribedId = target.prescribedExerciseId;
-          if (!prescribedId || (exerciseId !== prescribedId && !exercisesById[prescribedId]?.compatibleExerciseIds?.includes(exerciseId))) return current;
+          const prescription = getDraftExercisePrescription(current.activeDraft, target);
+          if (exerciseId !== prescription.prescribedExerciseId && !prescription.compatibleExerciseIds?.includes(exerciseId)) return current;
+          if (!exercisesById[exerciseId]) return current;
           const previousSets = getPreviousExercisePerformance(current.history, exerciseId);
           return { ...current, activeDraft: { ...current.activeDraft, exercises: current.activeDraft.exercises.map((exercise) =>
             (exercise.slotId ?? exercise.exerciseId) !== slotId ? exercise : {

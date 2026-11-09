@@ -28,6 +28,8 @@ function loadModule(relativePath, mocks = {}, env = {}, cache = new Map()) {
 
 const storage = loadModule('src/utils/storage.ts');
 const { workouts, workoutsById } = loadModule('src/data/workouts.ts');
+const { legacyWorkouts } = loadModule('src/data/legacyWorkouts.ts');
+const { getWorkoutProgress } = loadModule('src/utils/workoutProgress.ts');
 const { exercisesById } = loadModule('src/data/exercises.ts');
 const ids = [...new Set([...workouts.flatMap((w) => w.exercises.flatMap((e) => e.prescribedExerciseIds ?? [e.prescribedExerciseId])), 'triceps-press'])];
 const canonicalHistory = [{ type: 'strength', id: 'canonical', workoutId: 'A', workoutName: 'Treino A',
@@ -41,7 +43,7 @@ const exercise = (state, slotId) => state.activeDraft.exercises.find((e) => e.ex
 const values = (sets) => sets.map(({ load,reps }) => ({ load,reps }));
 
 // Run the real provider and persistence effects with isolated in-memory storage.
-function store({ history = canonicalHistory, draft = null, restTimer = storage.defaultRestTimerState, fillFollowingSets = true } = {}) {
+function store({ history = canonicalHistory, draft = null, restTimer = storage.defaultRestTimerState, fillFollowingSets = true, published = workoutsById } = {}) {
   const data = new Map([
     ['daily-workout-state', JSON.stringify({ history, activeDraft: draft, restTimer })],
     ['daily-workout-session-settings', JSON.stringify({ fillFollowingSets })],
@@ -64,7 +66,7 @@ function store({ history = canonicalHistory, draft = null, restTimer = storage.d
   };
   const win = { localStorage: { getItem: (k) => data.get(k) ?? null, setItem: (k,v) => data.set(k,v) },
     setTimeout: () => 1, clearTimeout() {}, addEventListener() {}, removeEventListener() {} };
-  const { WorkoutStoreProvider } = loadModule('src/hooks/useWorkoutStore.tsx', { react: hooks }, {
+  const { WorkoutStoreProvider } = loadModule('src/hooks/useWorkoutStore.tsx', { react: hooks, '@/data/workouts': { workoutsById: published } }, {
     window: win, document: { addEventListener() {}, removeEventListener() {} },
   });
   const render = () => {
@@ -77,11 +79,12 @@ function store({ history = canonicalHistory, draft = null, restTimer = storage.d
   return { api: render, act(action) { action(render()); return render(); }, saved: () => JSON.parse(data.get('daily-workout-state')) };
 }
 
-function cardsFor(draft, history = canonicalHistory) {
+function cardsFor(draft, history = canonicalHistory, published = workoutsById) {
   const ExerciseCard = () => null;
   const component = () => null;
   const mocks = {
     react: { useState: (initial) => [initial, () => {}] },
+    '@/data/workouts': { workoutsById: published },
     'react-router-dom': { Link: component, useNavigate: () => () => {}, useParams: () => ({ id: draft.workoutId }) },
     '@/hooks/useRestTimerSettings': { useRestTimerSettings: () => [{}] },
     '@/hooks/useWorkoutSessionSettings': { useWorkoutSessionSettings: () => [{}] },
@@ -226,6 +229,69 @@ test('reload/resume preserve selected and legacy-unselected active drafts, inclu
     assert.deepEqual(session.saved().activeDraft,draft);
     assert.deepEqual(session.saved().history,canonicalHistory);
   }
+});
+
+test('old ABC drafts survive a changed catalog through rehydration, rendering, progress and completion', () => {
+  for (const workout of legacyWorkouts) {
+    const draft = {
+      workoutId: workout.id,
+      startedAt: new Date(Date.now() - 60000).toISOString(),
+      exercises: workout.exercises.map(({ id, sets }) => ({
+        exerciseId: id,
+        sets: Array.from({ length: sets }, () => ({ load: '27.5', reps: '12', completed: false })),
+      })),
+    };
+    draft.exercises[0].sets.forEach((set) => Object.assign(set, { completed: true, loadSource: 'manual', repsSource: 'autofilled' }));
+    const restTimer = { status: 'running', selectedSeconds: 90, endAt: Date.now() + 60000,
+      automaticSource: { id: 'legacy-rest', workoutId: workout.id, startedAt: draft.startedAt, exerciseId: draft.exercises[0].exerciseId, setIndex: 2 },
+    };
+    const published = { [workout.id]: { ...workout, name: 'Nova ficha', exercises: [] } };
+    const h = store({ draft, restTimer, published });
+    h.act((api) => { api.startWorkout(workout.id); api.startWorkout(workout.id === 'A' ? 'B' : 'A'); });
+    const saved = h.saved();
+    assert.deepEqual(saved.activeDraft, draft);
+    assert.deepEqual(saved.restTimer, restTimer);
+    assert.deepEqual(cardsFor(saved.activeDraft, canonicalHistory, published).map((card) => card.exercise.id), draft.exercises.map((entry) => entry.exerciseId));
+    assert.deepEqual(getWorkoutProgress(saved.activeDraft), { totalExercises: 7, completedExercises: 1, percentage: 14 });
+
+    const reloaded = store({ draft: saved.activeDraft, restTimer: saved.restTimer, history: saved.history, published });
+    reloaded.act((api) => assert.equal(api.finishWorkout(), true));
+    const result = reloaded.saved();
+    assert.deepEqual(result.history.slice(0, -1), saved.history);
+    const entry = result.history.at(-1);
+    assert.equal(entry.workoutName, workout.name);
+    assert.equal(entry.startedAt, draft.startedAt);
+    assert.deepEqual(entry.exercises.map((item) => item.sets), draft.exercises.map((item) => item.sets.map(({ load, reps, completed }) => ({ load, reps, completed }))));
+    assert.equal(result.activeDraft, null);
+    assert.equal(result.restTimer.status, 'ready');
+    for (const [index, prescription] of workout.exercises.entries()) {
+      if (prescription.prescribedExerciseIds) {
+        assert.notEqual(entry.exercises[index].executedExerciseId, prescription.prescribedExerciseId);
+      }
+    }
+  }
+});
+
+test('frozen prescriptions retain options, substitutions and rep ranges after the published workout changes', () => {
+  const workout = legacyWorkouts[0];
+  const draft = storage.createWorkoutDraft(workout, canonicalHistory);
+  const published = { A: { ...workout, name: 'Outra ficha', exercises: [] } };
+  const h = store({ draft, published });
+  const swapped = h.act((api) => {
+    api.selectExerciseOption('squat-hack', 'hack-squat');
+    api.selectExerciseOption('squat-hack', 'bench-press');
+    api.replaceExercise('cable-pushdown-a', 'triceps-press');
+    api.replaceExercise('cable-pushdown-a', 'triceps-rope');
+  });
+  assert.equal(exercise(swapped.state, 'squat-hack').executedExerciseId, 'hack-squat');
+  assert.equal(exercise(swapped.state, 'cable-pushdown-a').executedExerciseId, 'triceps-press');
+  const cards = cardsFor(h.saved().activeDraft, canonicalHistory, published);
+  assert.equal(cards[0].exercise.repsMin, 8);
+  assert.equal(cards[0].exercise.repsMax, 12);
+  assert.equal(cards[0].exercise.name, 'Hack Squat');
+  h.act((api) => { api.finishWorkout(); });
+  assert.equal(h.saved().history.at(-1).workoutName, workout.name);
+  assert.equal(h.saved().history.at(-1).exercises[0].executedExerciseId, 'hack-squat');
 });
 
 test('default historical origins stay protected from assisted filling; eligible new fields still respect the preference', () => {

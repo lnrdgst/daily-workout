@@ -66,12 +66,14 @@ export interface ExerciseSessionState {
   executedExerciseName?: string;
   muscleGroup?: string;
   prescribedExerciseIds?: string[];
+  prescription?: Pick<WorkoutExercise, 'repsMin' | 'repsMax'> & { compatibleExerciseIds: string[] };
   sets: ExerciseSetLog[];
 }
 
 export interface WorkoutSessionDraft {
   type?: 'strength';
   workoutId: WorkoutId;
+  workoutName?: string;
   startedAt: string;
   exercises: ExerciseSessionState[];
 }
