@@ -148,17 +148,21 @@ test('actual detector waits below threshold and retains strength policy includin
   assert.equal(hook.read().prompt.type, 'cardio');
   const { createWorkoutDraft } = load('src/utils/storage.ts');
   const { workoutsById } = load('src/data/workouts.ts');
-  for (const count of [3, 4]) {
-    const strength = createWorkoutDraft(workoutsById.A);
-    delete strength.type;
+  const { legacyWorkoutsById } = load('src/data/legacyWorkouts.ts');
+  for (const [workout, count, shouldRegister] of [
+    [legacyWorkoutsById.A, 3, false], [legacyWorkoutsById.A, 4, true],
+    [workoutsById.A, 1, false], [workoutsById.A, 2, true],
+  ]) {
+    const strength = createWorkoutDraft(workout);
+    if (!workout.planVersion) delete strength.type;
     strength.startedAt = draft.startedAt;
     strength.exercises.slice(0, count).forEach((exercise) => exercise.sets.forEach((set) => { set.completed = true; }));
     const detectorHook = detector(strength);
-    assert.deepEqual(detectorHook.read().prompt, { type: 'strength', shouldRegister: count === 4 });
+    assert.deepEqual(detectorHook.read().prompt, { type: 'strength', shouldRegister });
     detectorHook.read().dismissPrompt(); detectorHook.fire('focus');
     assert.equal(detectorHook.read().prompt, null);
     detectorHook.fire('visibilitychange', 'hidden'); detectorHook.fire('visibilitychange', 'visible');
-    assert.equal(detectorHook.read().prompt.shouldRegister, count === 4);
+    assert.equal(detectorHook.read().prompt.shouldRegister, shouldRegister);
     detectorHook.unmount();
   }
 });

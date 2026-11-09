@@ -18,16 +18,16 @@ function load(relativePath, window) {
 
 const cardio = load('src/utils/cardioSession.ts');
 const storage = load('src/utils/storage.ts');
-const { workoutsById } = load('src/data/workouts.ts');
+const { legacyWorkoutsById } = load('src/data/legacyWorkouts.ts');
 const { getWorkoutSequenceProgress } = load('src/utils/workoutSequence.ts');
 const { formatLastWorkoutTiming } = load('src/utils/workoutTiming.ts');
 const legacy = ['A', 'B', 'C'].map((id, index) => ({
-  ...storage.buildHistoryEntry(storage.createWorkoutDraft(workoutsById[id])),
+  ...storage.buildHistoryEntry(storage.createWorkoutDraft(legacyWorkoutsById[id])),
   type: undefined, id, finishedAt: new Date(2026, 8, 10 + index).toISOString(),
 }));
 
 test('legacy strength state is loaded intact, without adding type or rewriting history', () => {
-  const oldDraft = storage.createWorkoutDraft(workoutsById.A);
+  const oldDraft = storage.createWorkoutDraft(legacyWorkoutsById.A);
   delete oldDraft.type;
   const oldState = { history: legacy, activeDraft: oldDraft, restTimer: storage.defaultRestTimerState, lastCompletedWorkoutId: 'C', lastOpenedWorkoutId: 'A' };
   const json = JSON.stringify(oldState);

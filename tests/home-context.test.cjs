@@ -177,17 +177,32 @@ const cardio = { type: 'cardio', id: 'bike', modality: 'stationary-bike', workou
 test('next strength follows chronological strength history independently of global latest session', () => {
   const { getNextStrengthWorkout } = loadModule('src/utils/nextWorkout.ts', {});
   const { workouts } = loadModule('src/data/workouts.ts', {});
-  for (const [history, expected] of [[[], 'A'], [[cardio], 'A'], [[session(today, 'A')], 'B'], [[session(today, 'C')], 'A'],
-    [[cardio, session(yesterday, 'A')], 'B'], [[session(today, 'B'), session(yesterday, 'A')], 'C']]) {
+  const splitSession = (id) => ({ ...session(today, id), planVersion: 'ABCDE' });
+  for (const [history, expected] of [[[], 'A'], [[cardio], 'A'], [[session(today, 'A')], 'B'], [[session(today, 'C')], 'D'],
+    [[cardio, session(yesterday, 'A')], 'B'], [[session(today, 'B'), session(yesterday, 'A')], 'C'],
+    [[cardio, splitSession('D')], 'E'], [[splitSession('E')], 'A']]) {
     assert.equal(getNextStrengthWorkout(history, workouts).id, expected);
   }
-  const extended = [...workouts, { ...workouts[0], id: 'D' }];
-  assert.equal(getNextStrengthWorkout([session(today, 'C')], extended).id, 'D');
-  assert.equal(getNextStrengthWorkout([session(today, 'D')], extended).id, 'A');
   assert.equal(getNextStrengthWorkout([], []), null);
 });
 
-test('global cardio history and next strength coexist without advancing ABC', () => {
+test('legacy ABC cycles are separate from ABCDE and cannot supply missing steps', () => {
+  const { getWorkoutSequenceProgress } = loadModule('src/utils/workoutSequence.ts', {});
+  const dated = (id, day) => session(new Date(2026, 8, day, 14), id);
+  const legacy = ['A', 'B', 'C'].map((id, index) => dated(id, index + 1));
+  const split = ['D', 'E', 'A', 'B', 'C', 'D', 'E'].map((id, index) => ({ ...dated(id, index + 4), planVersion: 'ABCDE' }));
+  const transition = [...legacy, cardio, ...split.slice(0, 2)];
+  assert.deepEqual(getWorkoutSequenceProgress(transition, 'ABCDE'), { completedSequences: 0, currentStep: 0 });
+  const history = [...legacy, ...split, cardio];
+  assert.deepEqual(getWorkoutSequenceProgress(history), { completedSequences: 1, currentStep: 0 });
+  assert.deepEqual(getWorkoutSequenceProgress(history, 'ABCDE'), { completedSequences: 1, currentStep: 0 });
+  const { text, html } = renderHome(history);
+  assert.ok(text.includes('1 ciclo ABCDE concluído'));
+  assert.ok(text.includes('1 ciclo ABC anterior concluído'));
+  assert.ok(html.includes('0 de 5 etapas concluídas'));
+});
+
+test('global cardio history and next strength coexist without advancing the rotation', () => {
   const { text, html } = renderHome([cardio, session(yesterday, 'A')]);
   assert.ok(text.includes('Bike ergométrica'));
   assert.ok(text.includes('Treino de hoje concluído.'));
@@ -207,7 +222,7 @@ test('unified first card contains only the most recent completion and no nested 
     assert.equal((sections[0].match(/Concluído/g) || []).length, 1);
     assert.equal((sections[0].match(/class="panel/g) || []).length, 1);
     assert.ok(sections[1].includes('href="/workout/C"'));
-    assert.ok(sections[2].includes('Sequência ABC'));
+    assert.ok(sections[2].includes('Sequência ABCDE'));
   }
 });
 

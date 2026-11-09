@@ -26,30 +26,31 @@ function loadModule(relativePath, mocks = {}) {
 
 const storage = loadModule('src/utils/storage.ts');
 const { workoutsById } = loadModule('src/data/workouts.ts');
+const { legacyWorkoutsById } = loadModule('src/data/legacyWorkouts.ts');
 const { resolveCanonicalExerciseId } = loadModule('src/data/exercises.ts');
 const sets = (load, reps) => [{ load, reps, completed: true }];
 const history = (exercises) => [{ type: 'strength', exercises }];
 
 test('new drafts keep the stable slot and canonical prescribed/executed identities', () => {
-  const draft = storage.createWorkoutDraft(workoutsById.A);
-  const lateral = draft.exercises.find((exercise) => exercise.exerciseId === 'lateral-raise-a');
-  assert.equal(lateral.slotId, 'lateral-raise-a');
+  const draft = storage.createWorkoutDraft(workoutsById.B);
+  const lateral = draft.exercises.find((exercise) => exercise.exerciseId === 'b-lateral-raise');
+  assert.equal(lateral.slotId, 'b-lateral-raise');
   assert.equal(lateral.prescribedExerciseId, 'lateral-raise');
   assert.equal(lateral.executedExerciseId, 'lateral-raise');
   assert.equal(lateral.prescribedExerciseId, lateral.executedExerciseId);
 });
 
-test('identical exercises in A and C share canonical identity and autofill across workouts', () => {
-  const history = [{ type: 'strength', exercises: [
+test('identical exercises in legacy A and new B share canonical identity and autofill across workouts', () => {
+  const history = [{ type: 'strength', workoutId: 'A', exercises: [
     { exerciseId: 'lateral-raise', executedExerciseId: 'lateral-raise', sets: sets('10', '12') },
     { exerciseId: 'cable-pushdown', executedExerciseId: 'cable-pushdown', sets: sets('45', '10') },
   ] }];
-  const draft = storage.createWorkoutDraft(workoutsById.C, history);
-  const lateral = draft.exercises.find((exercise) => exercise.exerciseId === 'lateral-raise-c');
-  assert.equal(workoutsById.A.exercises.find((exercise) => exercise.id === 'lateral-raise-a').prescribedExerciseId, 'lateral-raise');
+  const draft = storage.createWorkoutDraft(workoutsById.B, history);
+  const lateral = draft.exercises.find((exercise) => exercise.exerciseId === 'b-lateral-raise');
+  assert.equal(legacyWorkoutsById.A.exercises.find((exercise) => exercise.id === 'lateral-raise-a').prescribedExerciseId, 'lateral-raise');
   assert.equal(lateral.sets[0].load, '10');
   assert.equal(lateral.sets[0].reps, '12');
-  const pushdown = draft.exercises.find((exercise) => exercise.exerciseId === 'cable-pushdown-c');
+  const pushdown = draft.exercises.find((exercise) => exercise.exerciseId === 'b-cable-pushdown');
   assert.equal(pushdown.sets[0].load, '45');
   assert.equal(pushdown.sets[0].reps, '10');
 });
@@ -64,10 +65,11 @@ test('cable pushdown aliases legacy A/C records but distinct canonical exercises
 });
 
 test('new history snapshots prescribed and executed identities while preserving workout origin', () => {
-  const draft = storage.createWorkoutDraft(workoutsById.C);
+  const draft = storage.createWorkoutDraft(workoutsById.B);
   const entry = storage.buildHistoryEntry(draft);
   const pushdown = entry.exercises.find((exercise) => exercise.executedExerciseId === 'cable-pushdown');
-  assert.equal(entry.workoutId, 'C');
+  assert.equal(entry.workoutId, 'B');
+  assert.equal(entry.planVersion, 'ABCDE');
   assert.equal(pushdown.prescribedExerciseId, 'cable-pushdown');
   assert.equal(pushdown.executedExerciseId, 'cable-pushdown');
   assert.equal(pushdown.exerciseId, 'cable-pushdown');
@@ -82,15 +84,15 @@ test('legacy drafts remain readable without normalization or localStorage reset'
 });
 
 test('prescribed alternatives start with the principal canonical exercise without reading ambiguous legacy history', () => {
-  const draft = storage.createWorkoutDraft(workoutsById.C, [{ exercises: [{ exerciseId: 'leg-curl-a', sets: sets('55', '10') }] }]);
-  const curl = draft.exercises.find((exercise) => exercise.exerciseId === 'leg-curl-c');
+  const draft = storage.createWorkoutDraft(workoutsById.E, [{ exercises: [{ exerciseId: 'leg-curl-a', sets: sets('55', '10') }] }]);
+  const curl = draft.exercises.find((exercise) => exercise.exerciseId === 'e-leg-curl');
   assert.deepEqual(curl.prescribedExerciseIds, ['lying-leg-curl', 'seated-leg-curl']);
   assert.equal(curl.prescribedExerciseId, 'lying-leg-curl');
   assert.equal(curl.executedExerciseId, 'lying-leg-curl');
   assert.equal(curl.executedExerciseName, 'Mesa flexora');
   assert.equal(curl.sets[0].load, '');
   assert.equal(curl.sets[0].reps, '10');
-  assert.equal(curl.slotId, 'leg-curl-c');
+  assert.equal(curl.slotId, 'e-leg-curl');
 });
 
 test('legacy composites stay separate from explicit canonical triceps and machine row identities', () => {
@@ -138,7 +140,7 @@ test('canonical prescribed alternatives only read their own explicit history, ne
 });
 
 test('changing prescribed options rebuilds sets from the new canonical history or prescription', () => {
-  const prescription = workoutsById.B.exercises.find((exercise) => exercise.id === 'triceps-french');
+  const prescription = legacyWorkoutsById.B.exercises.find((exercise) => exercise.id === 'triceps-french');
   const frenchHistory = [
     { load: '30', reps: '15', completed: true },
     { load: '40', reps: '10', completed: true },
@@ -161,8 +163,9 @@ test('changing prescribed options rebuilds sets from the new canonical history o
 test('a resumed unselected legacy card does not infer its first option or request its history', () => {
   const ExerciseCard = () => null;
   const component = () => null;
-  const draft = storage.createWorkoutDraft(workoutsById.B);
+  const draft = storage.createWorkoutDraft(legacyWorkoutsById.B);
   const legacyExercise = draft.exercises.find((exercise) => exercise.exerciseId === 'triceps-french');
+  delete legacyExercise.prescription;
   delete legacyExercise.prescribedExerciseId;
   delete legacyExercise.executedExerciseId;
   delete legacyExercise.executedExerciseName;

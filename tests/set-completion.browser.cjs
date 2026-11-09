@@ -20,7 +20,7 @@ async function main() {
   const state = () => page.evaluate(() => JSON.parse(localStorage.getItem('daily-workout-state')));
   const click = (name) => page.getByRole('button', { name, exact: true }).click();
   const action = (name) => page.getByRole('dialog').getByRole('button', { name, exact: true }).click();
-  const firstExercise = () => page.locator('article').filter({ has: page.getByRole('heading', { name: 'Agachamento ou Hack Squat', exact: true }) });
+  const firstExercise = () => page.locator('article').filter({ has: page.getByRole('heading', { name: 'Puxada frontal', exact: true }) });
   const mark = () => firstExercise().getByRole('button', { name: 'Marcar', exact: true }).first().click();
   const openUndo = () => firstExercise().getByRole('button', { name: 'Feita', exact: true }).first().click();
   const relatedAction = () => page.getByRole('dialog').getByRole('button', { name: 'Desmarcar e cancelar descanso', exact: true });
@@ -51,7 +51,7 @@ async function main() {
 
     await reset(); await mark();
     const automatic = await state();
-    assert.equal(automatic.restTimer.automaticSource.exerciseId, 'squat-hack');
+    assert.equal(automatic.restTimer.automaticSource.exerciseId, 'a-lat-pulldown');
     assert.equal(automatic.restTimer.automaticSource.setIndex, 0);
     await openUndo();
     assert.equal(await relatedAction().count(), 1);
@@ -113,7 +113,7 @@ async function main() {
     await firstExercise().getByText('2/3 séries', { exact: true }).waitFor();
     assert.equal(await firstExercise().getByText('Concluído', { exact: true }).count(), 0);
     await firstExercise().getByRole('button', { name: 'Marcar', exact: true }).waitFor({ state: 'visible' });
-    await page.getByText('0 de 7 exercícios concluídos', { exact: true }).waitFor();
+    await page.getByText('0 de 3 exercícios concluídos', { exact: true }).waitFor();
     assert.equal((await state()).restTimer.status, 'ready');
     console.log('PASS completed exercise reopens, displays 2/3 and recalculates workout progress');
 
@@ -141,7 +141,8 @@ async function main() {
     assert.match(await visualSeries().nth(0).getAttribute('class'), /border-accent-500/);
     assert.match(await visualSeries().nth(1).getAttribute('class'), /border-white\/10/);
     await page.screenshot({ path: 'dist/cardio-qa/artifacts/completed-series-320.png', fullPage: true, animations: 'disabled' });
-    await page.getByLabel('Carga').first().fill('40');
+    await firstExercise().getByRole('button', { name: /^Editar carga de Puxada frontal, série 1\./ }).click();
+    for (const key of ['4', '0', 'Confirmar']) await action(key);
     assert.equal((await state()).activeDraft.exercises[0].sets[0].load, '40');
     await mark();
     assert.match(await visualSeries().nth(1).getAttribute('class'), /border-accent-500/);

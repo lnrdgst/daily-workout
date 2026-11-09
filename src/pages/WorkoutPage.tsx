@@ -18,7 +18,7 @@ import { getWorkoutProgress } from '@/utils/workoutProgress';
 import { getSessionPath } from '@/utils/sessions';
 import { getRelatedAutomaticRestId } from '@/utils/setCompletion';
 import { getDraftExercisePrescription } from '@/utils/workoutDraft';
-import type { SetCompletionTarget } from '@/types/workout';
+import { isWorkoutId, type SetCompletionTarget } from '@/types/workout';
 
 type WorkoutSessionIndicatorProps = {
   workoutId: string;
@@ -69,7 +69,7 @@ export const WorkoutPage = () => {
   const [optionSlotId, setOptionSlotId] = useState<string | null>(null);
   const [replacementSlotId, setReplacementSlotId] = useState<string | null>(null);
 
-  const workoutId = id === 'A' || id === 'B' || id === 'C' ? id : null;
+  const workoutId = isWorkoutId(id) ? id : null;
   const workout = workoutId ? workoutsById[workoutId] : null;
   const activeDraft = state.activeDraft?.type !== 'cardio' && state.activeDraft?.workoutId === workoutId ? state.activeDraft : null;
   const getActiveExercise = (slotId: string | null) => activeDraft?.exercises.find((item) => (item.slotId ?? item.exerciseId) === slotId);

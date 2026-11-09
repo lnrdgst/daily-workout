@@ -101,7 +101,24 @@ function cardsFor(draft, history = canonicalHistory, published = workoutsById) {
   return walk(WorkoutPage()).filter((n) => n.type === ExerciseCard).map((n) => n.props);
 }
 
-test('every new A/B/C exercise selects the principal canonical ID and immediately copies history with correct origins', () => {
+test('the five split workouts each have three exercises and three sets with the approved rep ranges', () => {
+  const expected = {
+    A: [['lat-pulldown', 8, 12], ['seated-row', 8, 12], ['barbell-curl', 10, 12]],
+    B: [['bench-press', 8, 12], ['lateral-raise', 12, 15], ['cable-pushdown', 10, 15]],
+    C: [['squat', 8, 12], ['stiff', 8, 12], ['standing-calf-raise', 12, 15]],
+    D: [['incline-dumbbell-press', 8, 12], ['machine-row', 8, 12], ['shoulder-press', 8, 12]],
+    E: [['leg-press', 10, 12], ['lying-leg-curl', 10, 15], ['crunch', 10, 15]],
+  };
+  assert.deepEqual(workouts.map(({ id }) => id), Object.keys(expected));
+  for (const workout of workouts) {
+    const draft = storage.createWorkoutDraft(workout);
+    assert.equal(draft.planVersion, 'ABCDE');
+    assert.deepEqual(workout.exercises.map(({ prescribedExerciseId, repsMin, repsMax }) => [prescribedExerciseId, repsMin, repsMax]), expected[workout.id]);
+    assert.deepEqual(draft.exercises.map(({ sets }) => sets.length), [3, 3, 3]);
+  }
+});
+
+test('every new exercise selects the principal canonical ID and immediately copies history with correct origins', () => {
   const before = JSON.stringify(canonicalHistory);
   for (const workout of workouts) {
     const draft = storage.createWorkoutDraft(workout,canonicalHistory);
@@ -155,19 +172,19 @@ test('the first active page render uses selected names, historical values and Tr
 
 test('starting, recording and reopening a workout never needs an initial choice or keypad to save canonical squat history', () => {
   const session = store();
-  let api = session.act((a) => a.startWorkout('A'));
-  assert.deepEqual(values(exercise(api.state,'squat-hack').sets),values(priorSets('squat')));
-  session.act((a) => a.updateSet('squat-hack',0,{ load: '61.5', reps: '18.5' }));
-  session.act((a) => a.toggleSetCompleted('squat-hack',0));
+  let api = session.act((a) => a.startWorkout('C'));
+  assert.deepEqual(values(exercise(api.state,'c-squat').sets),values(priorSets('squat')));
+  session.act((a) => a.updateSet('c-squat',0,{ load: '61.5', reps: '18.5' }));
+  session.act((a) => a.toggleSetCompleted('c-squat',0));
   api = session.act((a) => a.finishWorkout());
   const recorded = api.state.history.at(-1).exercises[0];
   assert.equal(recorded.exerciseId,'squat');
   assert.equal(recorded.executedExerciseId,'squat');
   assert.equal(recorded.exerciseName,'Agachamento');
-  api = session.act((a) => a.startWorkout('A'));
-  assert.equal(exercise(api.state,'squat-hack').sets[0].load,'61.5');
-  assert.equal(exercise(api.state,'squat-hack').sets[0].reps,'18.5');
-  assert.equal(exercise(api.state,'squat-hack').sets[0].loadSource,'history');
+  api = session.act((a) => a.startWorkout('C'));
+  assert.equal(exercise(api.state,'c-squat').sets[0].load,'61.5');
+  assert.equal(exercise(api.state,'c-squat').sets[0].reps,'18.5');
+  assert.equal(exercise(api.state,'c-squat').sets[0].loadSource,'history');
   assert.deepEqual(session.saved().activeDraft,api.state.activeDraft);
 });
 
@@ -176,38 +193,41 @@ test('option changes and return use only the chosen history, including missing a
     const history = JSON.parse(JSON.stringify(canonicalHistory));
     if (!hasHackHistory) history[0].exercises = history[0].exercises.filter((e) => e.executedExerciseId !== 'hack-squat');
     const session = store({ history });
-    session.act((a) => a.startWorkout('A'));
-    let api = session.act((a) => a.selectExerciseOption('squat-hack','hack-squat'));
-    const entry = exercise(api.state,'squat-hack');
+    session.act((a) => a.startWorkout('C'));
+    let api = session.act((a) => a.selectExerciseOption('c-squat','hack-squat'));
+    const entry = exercise(api.state,'c-squat');
     assert.equal(entry.executedExerciseId,'hack-squat');
     if (hasHackHistory) assert.deepEqual(values(entry.sets),values(priorSets('hack-squat')));
     else assert.ok(entry.sets.every((s) => s.load === '' && s.reps === '8' && s.loadSource === 'empty' && s.repsSource === 'prescription'));
-    api = session.act((a) => a.selectExerciseOption('squat-hack','squat'));
-    assert.deepEqual(values(exercise(api.state,'squat-hack').sets),values(priorSets('squat')));
+    api = session.act((a) => a.selectExerciseOption('c-squat','squat'));
+    assert.deepEqual(values(exercise(api.state,'c-squat').sets),values(priorSets('squat')));
     assert.equal(api.state.activeDraft.exercises[0].sets[0].repsSource,'history');
     assert.deepEqual(api.state.history,history);
   }
 });
 
-test('C pushdown initializes canonically, substitutes Press and returns without mixing histories', () => {
+test('B pushdown substitutes Press without offering French or rope as prescribed options', () => {
   const session = store();
-  let api = session.act((a) => a.startWorkout('C'));
-  assert.deepEqual(values(exercise(api.state,'cable-pushdown-c').sets),values(priorSets('cable-pushdown')));
-  api = session.act((a) => a.replaceExercise('cable-pushdown-c','triceps-press'));
-  const press = exercise(api.state,'cable-pushdown-c');
+  let api = session.act((a) => a.startWorkout('B'));
+  const initial = exercise(api.state,'b-cable-pushdown');
+  assert.deepEqual(values(initial.sets),values(priorSets('cable-pushdown')));
+  assert.deepEqual(initial.prescribedExerciseIds, ['cable-pushdown']);
+  api = session.act((a) => a.replaceExercise('b-cable-pushdown','triceps-press'));
+  const press = exercise(api.state,'b-cable-pushdown');
   assert.equal(press.prescribedExerciseId,'cable-pushdown');
   assert.equal(press.executedExerciseId,'triceps-press');
   assert.deepEqual(values(press.sets),values(priorSets('triceps-press')));
-  assert.equal(cardsFor(api.state.activeDraft).find((c) => c.sessionState.exerciseId === 'cable-pushdown-c').exercise.name,'Triceps Press');
-  api = session.act((a) => a.replaceExercise('cable-pushdown-c','cable-pushdown'));
-  assert.deepEqual(values(exercise(api.state,'cable-pushdown-c').sets),values(priorSets('cable-pushdown')));
+  assert.equal(cardsFor(api.state.activeDraft).find((c) => c.sessionState.exerciseId === 'b-cable-pushdown').exercise.name,'Triceps Press');
+  api = session.act((a) => a.replaceExercise('b-cable-pushdown','cable-pushdown'));
+  assert.deepEqual(values(exercise(api.state,'b-cable-pushdown').sets),values(priorSets('cable-pushdown')));
 });
 
 test('reload/resume preserve selected and legacy-unselected active drafts, including blank/manual/autofilled/completed sets and timer', () => {
   for (const legacy of [true,false]) {
-    const draft = storage.createWorkoutDraft(workoutsById.A);
+    const draft = storage.createWorkoutDraft(legacy ? legacyWorkouts[0] : workoutsById.C);
     const target = draft.exercises[0];
     if (legacy) {
+      delete target.prescription;
       delete target.prescribedExerciseId; delete target.executedExerciseId; delete target.executedExerciseName;
     } else {
       target.executedExerciseId = 'hack-squat'; target.executedExerciseName = 'Hack Squat';
@@ -219,11 +239,11 @@ test('reload/resume preserve selected and legacy-unselected active drafts, inclu
     ];
     if (legacy) { delete target.sets[2].loadSource; delete target.sets[2].repsSource; }
     const restTimer = { status: 'running', selectedSeconds: 90, endAt: Date.now() + 60000,
-      automaticSource: { workoutId: 'A', startedAt: draft.startedAt, exerciseId: target.exerciseId, setIndex: 1, id: 'keep-rest' } };
+      automaticSource: { workoutId: draft.workoutId, startedAt: draft.startedAt, exerciseId: target.exerciseId, setIndex: 1, id: 'keep-rest' } };
     const session = store({ draft,restTimer });
     const loaded = session.api().state;
     assert.deepEqual(loaded.activeDraft,draft);
-    const resumed = session.act((a) => a.startWorkout('A')).state;
+    const resumed = session.act((a) => a.startWorkout(draft.workoutId)).state;
     assert.equal(resumed.activeDraft,loaded.activeDraft);
     assert.equal(resumed.restTimer,loaded.restTimer);
     assert.deepEqual(session.saved().activeDraft,draft);
@@ -294,15 +314,40 @@ test('frozen prescriptions retain options, substitutions and rep ranges after th
   assert.equal(h.saved().history.at(-1).exercises[0].executedExerciseId, 'hack-squat');
 });
 
+test('D and E preserve their alternative, series and automatic rest when rehydrated and finalized', () => {
+  for (const [id, slotId, alternative] of [['D', 'd-machine-row', 't-bar-row'], ['E', 'e-leg-curl', 'seated-leg-curl']]) {
+    const h = store();
+    h.act((api) => api.startWorkout(id));
+    const swapped = h.act((api) => api.selectExerciseOption(slotId, alternative));
+    assert.deepEqual(values(exercise(swapped.state, slotId).sets), values(priorSets(alternative)));
+    h.act((api) => api.toggleSetCompleted(slotId, 0));
+    const startedAt = h.saved().activeDraft.startedAt;
+    h.act((api) => api.startRestTimer(60, { workoutId: id, startedAt, exerciseId: slotId, setIndex: 0 }));
+    const saved = h.saved();
+    const reloaded = store({ draft: saved.activeDraft, restTimer: saved.restTimer, history: saved.history });
+    assert.deepEqual(reloaded.saved().activeDraft, saved.activeDraft);
+    assert.deepEqual(reloaded.saved().restTimer, saved.restTimer);
+    assert.equal(reloaded.saved().restTimer.automaticSource.workoutId, id);
+    assert.equal(getWorkoutProgress(reloaded.saved().activeDraft).totalExercises, 3);
+    reloaded.act((api) => api.finishWorkout());
+    const result = reloaded.saved().history.at(-1);
+    assert.equal(result.planVersion, 'ABCDE');
+    assert.equal(result.workoutId, id);
+    assert.equal(result.exercises.length, 3);
+    assert.equal(result.exercises[1].executedExerciseId, alternative);
+    assert.equal(result.exercises[1].sets[0].completed, true);
+  }
+});
+
 test('default historical origins stay protected from assisted filling; eligible new fields still respect the preference', () => {
-  const historical = store(); historical.act((a) => a.startWorkout('A'));
-  const after = historical.act((a) => a.updateSet('squat-hack',0,{ load: '99' })).state;
-  assert.equal(exercise(after,'squat-hack').sets[0].loadSource,'manual');
-  assert.deepEqual(exercise(after,'squat-hack').sets.slice(1).map((s) => s.load),priorSets('squat').slice(1).map((s) => s.load));
+  const historical = store(); historical.act((a) => a.startWorkout('C'));
+  const after = historical.act((a) => a.updateSet('c-squat',0,{ load: '99' })).state;
+  assert.equal(exercise(after,'c-squat').sets[0].loadSource,'manual');
+  assert.deepEqual(exercise(after,'c-squat').sets.slice(1).map((s) => s.load),priorSets('squat').slice(1).map((s) => s.load));
   for (const enabled of [true,false]) {
-    const session = store({ history: [],fillFollowingSets: enabled }); session.act((a) => a.startWorkout('A'));
-    const { state } = session.act((a) => a.updateSet('squat-hack',0,{ load: '20',reps: '18.5' }));
-    const subsequent = exercise(state,'squat-hack').sets[1];
+    const session = store({ history: [],fillFollowingSets: enabled }); session.act((a) => a.startWorkout('C'));
+    const { state } = session.act((a) => a.updateSet('c-squat',0,{ load: '20',reps: '18.5' }));
+    const subsequent = exercise(state,'c-squat').sets[1];
     assert.equal(subsequent.load,enabled ? '20' : '');
     assert.equal(subsequent.reps,enabled ? '18.5' : '8');
     assert.equal(subsequent.loadSource,enabled ? 'autofilled' : 'empty');

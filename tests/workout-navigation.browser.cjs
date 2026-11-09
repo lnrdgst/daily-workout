@@ -25,12 +25,14 @@ async function main() {
   const select = async (route) => {
     await dialog.locator(`a[href="${route}"]`).click();
     await page.waitForURL(`${baseURL}${route}`);
+    await dialog.waitFor({ state: 'hidden' });
     assert.equal(await dialog.count(), 0);
     assert.equal((await routeState()).origin, 'workout-picker');
   };
   const back = async (reopen) => {
     assert.equal(await button('Voltar para treinos').count(), 0);
     const control = button('Voltar');
+    await control.waitFor();
     assert.equal(await control.count(), 1);
     const bounds = await control.boundingBox();
     const brand = await page.locator('header').boundingBox();
@@ -55,6 +57,8 @@ async function main() {
 
   try {
     await page.goto(baseURL);
+    const sequence = page.getByRole('group', { name: /Progresso atual da sequência/ });
+    assert.equal(await sequence.evaluate((element) => new Set(Array.from(element.children, (step) => step.firstElementChild.getBoundingClientRect().top)).size), 1);
     const initial = await persisted();
     await page.getByRole('link', { name: 'Ver treino A', exact: true }).click();
     fs.mkdirSync('dist/cardio-qa/artifacts', { recursive: true });
@@ -65,7 +69,9 @@ async function main() {
     console.log('PASS main next-workout link returns to normal Home without changing storage');
 
     await openSelector();
-    await select('/workout/C');
+    assert.equal(await dialog.locator('a[href^="/workout/"]').count(), 5);
+    assert.equal(await dialog.locator('a[href="/workout/E"]').getByText(/Pernas e abdômen/).count(), 1);
+    await select('/workout/D');
     await back(true);
     await button('Fechar seletor de treinos').click();
     assert.equal(await dialog.count(), 0);
@@ -91,7 +97,7 @@ async function main() {
     assert.deepEqual(await persisted(), initial);
     console.log('PASS all cardio previews return to picker, Escape closes, no persistence added');
 
-    for (const route of ['/workout/B', '/cardio/walking']) {
+    for (const route of ['/workout/E', '/cardio/walking']) {
       await page.goto(`${baseURL}${route}`);
       await page.reload();
       await back(false);
@@ -121,8 +127,65 @@ async function main() {
       }, initial);
       await page.goto(baseURL);
     }
-    assert.deepEqual(errors, []);
     console.log('PASS active strength/cardio navigation unchanged, origin cleared and no browser exceptions');
+
+    const legacyDraft = await page.evaluate(() => {
+      const state = JSON.parse(localStorage.getItem('daily-workout-state'));
+      const draft = {
+        workoutId: 'C',
+        startedAt: new Date(Date.now() - 120000).toISOString(),
+        exercises: ['hack-squat-c', 'leg-curl-c', 'chest-press', 'machine-row', 'lateral-raise-c', 'scott-curl', 'cable-pushdown-c']
+          .map((exerciseId) => ({ exerciseId, sets: Array.from({ length: 3 }, () => ({ load: '20', reps: '10', completed: false })) })),
+      };
+      state.activeDraft = draft;
+      localStorage.setItem('daily-workout-state', JSON.stringify(state));
+      return draft;
+    });
+    const appState = () => page.evaluate(() => JSON.parse(localStorage.getItem('daily-workout-state')));
+    const finishStrength = async () => {
+      await button('Finalizar treino').click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Finalizar treino', exact: true }).click();
+      await page.waitForURL(`${baseURL}/history`);
+    };
+    await page.goto(`${baseURL}/workout/D`);
+    assert.equal(await button('Iniciar treino').count(), 0);
+    await page.getByRole('link', { name: 'Voltar ao treino em andamento', exact: true }).click();
+    await page.reload();
+    await page.getByText('0 de 7 exercícios concluídos', { exact: true }).waitFor();
+    assert.deepEqual((await appState()).activeDraft, legacyDraft);
+    await finishStrength();
+    assert.equal((await appState()).history.at(-1).exercises.length, 7);
+    assert.equal((await appState()).history.at(-1).planVersion, undefined);
+    await page.getByRole('link', { name: 'Treinos', exact: true }).click();
+    await page.getByRole('link', { name: 'Ver treino D', exact: true }).waitFor();
+
+    await openSelector();
+    await select('/workout/E');
+    await button('Iniciar treino').click();
+    await page.getByText('0 de 3 exercícios concluídos', { exact: true }).waitFor();
+    await page.getByRole('button', { name: /^Editar carga de Leg press, série 1\./ }).click();
+    const keypad = page.getByRole('dialog', { name: 'Leg press', exact: true });
+    for (const key of ['2', '0', 'Vírgula decimal', '5', 'Confirmar']) {
+      await keypad.getByRole('button', { name: key, exact: true }).click();
+    }
+    await button('Marcar').first().click();
+    const active = await appState();
+    assert.deepEqual(active.activeDraft.exercises[0].sets.map(({ load, loadSource }) => [load, loadSource]), [
+      ['20.5', 'manual'], ['20.5', 'autofilled'], ['20.5', 'autofilled'],
+    ]);
+    assert.equal(active.restTimer.automaticSource.workoutId, 'E');
+    await page.reload();
+    assert.deepEqual((await appState()).restTimer, active.restTimer);
+    await finishStrength();
+    const history = (await appState()).history;
+    assert.deepEqual(history.map(({ workoutId, planVersion, exercises }) => [workoutId, planVersion, exercises.length]), [
+      ['C', undefined, 7], ['E', 'ABCDE', 3],
+    ]);
+    await page.getByRole('link', { name: 'Treinos', exact: true }).click();
+    await page.getByRole('link', { name: 'Ver treino A', exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false);
+    assert.deepEqual(errors, []);
+    console.log('PASS legacy C resumes and finishes, D is suggested, manually chosen E persists keypad and rest, then wraps to A');
   } finally {
     await browser.close();
   }

@@ -28,6 +28,8 @@ export const exerciseLibrary: ExerciseDefinition[] = [
   { id: 'machine-row', name: 'Remada máquina', muscleGroup: 'Costas', icon: 'row' },
   { id: 't-bar-row', name: 'Remada cavalinho', muscleGroup: 'Costas', icon: 'row' },
   { id: 'scott-curl', name: 'Rosca Scott', muscleGroup: 'Bíceps', icon: 'curl' },
+  { id: 'standing-calf-raise', name: 'Elevação de panturrilhas em pé, com apoio', muscleGroup: 'Panturrilhas' },
+  { id: 'crunch', name: 'Abdominal curto no solo', muscleGroup: 'Abdômen' },
 ];
 
 export const exercisesById = Object.fromEntries(exerciseLibrary.map((exercise) => [exercise.id, exercise])) as Record<string, ExerciseDefinition>;

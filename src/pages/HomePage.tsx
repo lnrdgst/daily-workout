@@ -8,6 +8,7 @@ import { getLatestSession, getSessionName, getSessionPath } from '@/utils/sessio
 import { isSameLocalDay } from '@/utils/localDate';
 import { formatLastWorkoutTiming } from '@/utils/workoutTiming';
 import { getWorkoutSequenceProgress } from '@/utils/workoutSequence';
+import { workoutOrder } from '@/types/workout';
 import { WorkoutSelector } from '@/components/WorkoutSelector';
 import { getNextStrengthWorkout } from '@/utils/nextWorkout';
 import { useWorkoutDuration } from '@/hooks/useWorkoutDuration';
@@ -59,8 +60,8 @@ export const HomePage = () => {
   const duration = useWorkoutDuration(state.activeDraft?.startedAt);
   const nextWorkout = getNextStrengthWorkout(state.history, workouts);
   const lastWorkout = getLatestSession(state.history);
-  const sequenceProgress = getWorkoutSequenceProgress(state.history);
-  const sequenceSteps = ['A', 'B', 'C'] as const;
+  const sequenceProgress = getWorkoutSequenceProgress(state.history, 'ABCDE');
+  const legacyCycles = getWorkoutSequenceProgress(state.history).completedSequences;
   const now = new Date();
   const trainedToday = state.history.some((session) => isSameLocalDay(new Date(session.finishedAt), now));
   const hour = now.getHours();
@@ -118,6 +119,7 @@ export const HomePage = () => {
               <section className="panel space-y-3 border-accent-500/30 p-5">
                 <p className="text-xs uppercase tracking-[0.24em] text-accent-300">Próximo treino de musculação</p>
                 <h3 className="break-words text-2xl font-bold">{nextWorkout.name}</h3>
+                <p className="text-sm text-zinc-300">{nextWorkout.description}</p>
                 <p className="text-sm text-zinc-400">{nextWorkout.exercises.length} {nextWorkout.exercises.length === 1 ? 'exercício' : 'exercícios'}</p>
                 <Link to={`/workout/${nextWorkout.id}`} state={{ origin: 'home-next-workout' }} className="touch-button w-full accent-solid">Ver treino {nextWorkout.id}</Link>
               </section>
@@ -128,25 +130,28 @@ export const HomePage = () => {
         )}
 
         <section className="panel p-5">
-          <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Sequência ABC</p>
-          <p className="mt-2 text-sm text-zinc-400">Complete os treinos A, B e C em ordem para concluir uma sequência. Não importa o intervalo entre os dias.</p>
-          <div className="mt-4 flex items-center gap-2 text-sm font-semibold" aria-label={`Progresso atual da sequência: ${sequenceProgress.currentStep} de 3 etapas concluídas`}>
-            {sequenceSteps.map((step, index) => {
+          <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Sequência ABCDE</p>
+          <p className="mt-2 text-sm text-zinc-400">Complete os treinos de A a E em ordem para contar um ciclo. O intervalo entre os treinos é livre.</p>
+          <div role="group" className="mt-4 flex flex-wrap items-center gap-1 text-xs font-semibold" aria-label={`Progresso atual da sequência: ${sequenceProgress.currentStep} de ${workoutOrder.length} etapas concluídas`}>
+            {workoutOrder.map((step, index) => {
               const isComplete = index < sequenceProgress.currentStep;
 
               return (
                 <div key={step} className="contents">
-                  <span className={`inline-flex min-w-10 items-center justify-center rounded-xl px-2 py-1.5 ${isComplete ? 'bg-accent-500/15 text-accent-300' : 'bg-white/5 text-zinc-400'}`}>
+                  <span className={`inline-flex min-w-8 items-center justify-center rounded-xl px-1.5 py-1.5 ${isComplete ? 'bg-accent-500/15 text-accent-300' : 'bg-white/5 text-zinc-400'}`}>
                     {step} {isComplete ? '✓' : '○'}
                   </span>
-                  {index < sequenceSteps.length - 1 && <span className="text-zinc-600">→</span>}
+                  {index < workoutOrder.length - 1 && <span className="text-zinc-600">→</span>}
                 </div>
               );
             })}
           </div>
           <p className="mt-3 text-sm text-zinc-300">
-            {sequenceProgress.completedSequences} sequência{sequenceProgress.completedSequences === 1 ? '' : 's'} concluída{sequenceProgress.completedSequences === 1 ? '' : 's'}
+            {sequenceProgress.completedSequences} {sequenceProgress.completedSequences === 1 ? 'ciclo ABCDE concluído' : 'ciclos ABCDE concluídos'}
           </p>
+          {legacyCycles > 0 && (
+            <p className="mt-1 text-sm text-zinc-400">{legacyCycles} {legacyCycles === 1 ? 'ciclo ABC anterior concluído' : 'ciclos ABC anteriores concluídos'}</p>
+          )}
         </section>
 
       </div>

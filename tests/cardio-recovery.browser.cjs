@@ -163,23 +163,28 @@ async function main() {
     await page.getByRole('dialog').waitFor({ state: 'hidden' });
     console.log('PASS no overlapping page/global dialogs');
 
-    for (const completed of [3, 4]) {
+    for (const [legacy, completed, shouldRegister] of [[true, 3, false], [true, 4, true], [false, 1, false], [false, 2, true]]) {
       await page.goto(`${baseURL}/workout/A`);
       await page.getByRole('button', { name: 'Iniciar treino', exact: true }).click();
       const strength = (await state()).activeDraft;
-      delete strength.type;
+      if (legacy) {
+        delete strength.type;
+        delete strength.planVersion;
+        strength.exercises = ['squat-hack', 'leg-curl-a', 'bench-press', 'lat-pulldown', 'lateral-raise-a', 'barbell-curl', 'cable-pushdown-a']
+          .map((exerciseId) => ({ exerciseId, sets: Array.from({ length: 3 }, () => ({ load: '', reps: '10', completed: false })) }));
+      }
       strength.startedAt = draft.startedAt;
       strength.exercises.slice(0, completed).forEach((exercise) => exercise.sets.forEach((set) => { set.completed = true; }));
       await seed(strength);
       await page.getByText('Treino ainda em andamento', { exact: true }).waitFor();
-      await action(completed === 4 ? 'Encerrar e registrar' : 'Encerrar sem registrar');
+      await action(shouldRegister ? 'Encerrar e registrar' : 'Encerrar sem registrar');
       saved = await state();
       assert.equal(saved.activeDraft, null);
-      assert.equal(saved.history.length, completed === 4 ? 1 : 0);
-      if (completed === 4) assert.ok(Date.parse(saved.history[0].finishedAt) >= now);
+      assert.equal(saved.history.length, shouldRegister ? 1 : 0);
+      if (shouldRegister) assert.ok(Date.parse(saved.history[0].finishedAt) >= now);
     }
     assert.deepEqual(errors, []);
-    console.log('PASS legacy strength stale branches and unchanged finish timestamp; no browser errors');
+    console.log('PASS legacy and split strength stale branches, unchanged finish timestamp and no browser errors');
   } finally { await browser.close(); }
 }
 main().catch((error) => { console.error(error); process.exitCode = 1; });

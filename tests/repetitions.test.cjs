@@ -29,7 +29,7 @@ function loadModule(relativePath, mocks = {}) {
 const storage = loadModule('src/utils/storage.ts');
 const { workoutsById } = loadModule('src/data/workouts.ts');
 const workout = workoutsById.A;
-const history = [{ exercises: [{ exerciseId: workout.exercises[0].id,
+const history = [{ exercises: [{ exerciseId: workout.exercises[0].prescribedExerciseId,
   sets: ['12', '11', '10'].map((reps, index) => ({ load: index ? '40' : '30', reps, completed: true })),
 }] }];
 
@@ -73,25 +73,25 @@ test('first execution uses numeric repsMin for all sets and leaves load empty an
   const draft = storage.createWorkoutDraft(workout);
   assert.deepEqual(draft.exercises[0].sets.map(({ load, reps, completed }) => ({ load, reps, completed })), Array.from({ length: 3 }, () => ({ load: '', reps: '8', completed: false })));
   assert.ok(draft.exercises[0].sets.every((set) => set.loadSource === 'empty' && set.repsSource === 'prescription'));
-  assert.deepEqual(draft.exercises[4].sets.map((set) => set.reps), ['12', '12', '12']);
-  assert.equal(storage.getPreviousExercisePerformance([], workout.exercises[0].id), null);
+  assert.deepEqual(draft.exercises[2].sets.map((set) => set.reps), ['10', '10', '10']);
+  assert.equal(storage.getPreviousExercisePerformance([], workout.exercises[0].prescribedExerciseId), null);
 });
 
 test('history wins, remains unchanged and additional sets use the prescription', () => {
   const before = JSON.stringify(history);
   const expanded = { ...workout, exercises: [{ ...workout.exercises[0], sets: 4 }] };
   const sets = storage.createWorkoutDraft(expanded, history).exercises[0].sets;
-  assert.deepEqual(sets.map((set) => set.reps), ['8', '8', '8', '8']);
-  assert.deepEqual(sets.map((set) => set.load), ['', '', '', '']);
+  assert.deepEqual(sets.map((set) => set.reps), ['12', '11', '10', '8']);
+  assert.deepEqual(sets.map((set) => set.load), ['30', '40', '40', '']);
   assert.ok(sets.every((set) => !set.completed));
   assert.equal(JSON.stringify(history), before);
 });
 
 test('historical empty and zero reps retain existing behavior', () => {
-  const prior = [{ exercises: [{ exerciseId: workout.exercises[0].id,
+  const prior = [{ exercises: [{ exerciseId: workout.exercises[0].prescribedExerciseId,
     sets: [{ load: '30', reps: '', completed: true }, { load: '', reps: '0', completed: true }],
   }] }];
-  assert.deepEqual(storage.createWorkoutDraft(workout, prior).exercises[0].sets.map((set) => set.reps), ['8', '8', '8']);
+  assert.deepEqual(storage.createWorkoutDraft(workout, prior).exercises[0].sets.map((set) => set.reps), ['', '0', '8']);
 });
 
 test('explicit buttons increment/decrement history values, clamp zero and safely handle empty/invalid values', () => {

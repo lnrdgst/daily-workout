@@ -56,7 +56,7 @@ async function main() {
         lastCompletedWorkoutId: 'A', lastOpenedWorkoutId: 'A', activeDraft: null,
         restTimer: { status: 'ready', selectedSeconds: 90, endAt: null },
         history: [{ id: 'legacy-A', workoutId: 'A', workoutName: 'Treino A', startedAt: '2026-09-12T12:00:00Z', finishedAt: '2026-09-12T12:45:00Z',
-          exercises: [{ exerciseId: 'squat-hack', exerciseName: 'Agachamento ou Hack Squat', muscleGroup: 'Pernas',
+          exercises: [{ exerciseId: 'lat-pulldown', exerciseName: 'Puxada frontal', muscleGroup: 'Costas',
             sets: ['12', '11', '10'].map((reps) => ({ load: '30', reps, completed: true })) }],
         }],
       }));
@@ -258,21 +258,23 @@ async function main() {
 
     await page.goto(`${baseURL}/workout/A`);
     await click('Iniciar treino');
-    const reps = page.getByLabel('Reps', { exact: true });
-    assert.deepEqual(await reps.evaluateAll((inputs) => inputs.map((input) => input.value)), ['12', '11', '10', '8', '8', '8', '8', '8', '8', '10', '10', '10', '12', '12', '12', '10', '10', '10', '10', '10', '10']);
+    const reps = page.getByRole('button', { name: /^Editar repetições/ });
+    assert.deepEqual(await reps.allTextContents(), ['12', '11', '10', '8', '8', '8', '10', '10', '10']);
     await page.getByRole('button', { name: 'Aumentar repetições', exact: true }).first().click();
-    assert.equal(await reps.first().inputValue(), '13');
-    await reps.first().fill('15');
+    assert.equal(await reps.first().textContent(), '13');
+    await reps.first().click();
+    const keypad = page.getByRole('dialog', { name: 'Puxada frontal', exact: true });
+    for (const key of ['1', '5', 'Confirmar']) await keypad.getByRole('button', { name: key, exact: true }).click();
     await page.getByRole('link', { name: 'Ajustes', exact: true }).click();
     await page.getByRole('button', { name: /Treino A em andamento/ }).click();
-    assert.equal(await reps.first().inputValue(), '15');
+    assert.equal(await reps.first().textContent(), '15');
     await page.evaluate(() => {
       const saved = JSON.parse(localStorage.getItem('daily-workout-state'));
       delete saved.activeDraft.type;
       localStorage.setItem('daily-workout-state', JSON.stringify(saved));
     });
     await page.reload();
-    assert.equal(await reps.first().inputValue(), '15', 'legacy active draft must resume unchanged');
+    assert.equal(await reps.first().textContent(), '15', 'draft without a type must resume unchanged');
     await click('Finalizar treino');
     assert.ok((await page.getByRole('dialog').innerText()).includes('Encerrar sem registrar'));
     await page.getByRole('dialog').getByRole('button', { name: 'Continuar treino', exact: true }).click();
@@ -290,7 +292,7 @@ async function main() {
     assert.equal((await state()).restTimer.status, 'ready');
     console.log('PASS strength autofill, spinner, manual editing, route resume, short session, completion, auto rest, finish');
 
-    for (const workoutId of ['B', 'C']) {
+    for (const workoutId of ['B', 'C', 'D', 'E']) {
       await page.goto(`${baseURL}/workout/${workoutId}`);
       await click('Iniciar treino');
       assert.equal((await state()).activeDraft.workoutId, workoutId);
@@ -304,8 +306,9 @@ async function main() {
       await finish();
     }
     await page.goto(baseURL);
-    await page.getByText('1 sequência concluída', { exact: true }).waitFor();
-    console.log('PASS Treinos B/C, exercise completion, accordion, ABC sequence with mixed history');
+    await page.getByText('1 ciclo ABCDE concluído', { exact: true }).waitFor();
+    await page.getByRole('link', { name: 'Ver treino A', exact: true }).waitFor();
+    console.log('PASS Treinos B–E, exercise completion, accordion, ABCDE cycle with mixed history');
 
     await page.goto(`${baseURL}/cardio/walking`);
     await click('Iniciar treino');

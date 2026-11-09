@@ -1,6 +1,7 @@
 import { exercisesById, getWorkoutExerciseView, resolveCanonicalExerciseId } from '@/data/exercises';
 import { isStrengthHistory } from '@/utils/sessions';
 import { getDraftExercisePrescription, getDraftWorkoutName } from '@/utils/workoutDraft';
+import { isWorkoutId } from '@/types/workout';
 import type {
   ExerciseSessionState,
   ExerciseSetLog,
@@ -68,6 +69,7 @@ export const createWorkoutDraft = (workout: Workout, history: SessionHistory[] =
   type: 'strength',
   workoutId: workout.id,
   workoutName: workout.name,
+  ...(workout.planVersion && { planVersion: workout.planVersion }),
   startedAt: new Date().toISOString(),
   // Only new sessions run this builder. Resumed drafts keep their existing values.
   exercises: workout.exercises.map((exercise) => createExerciseState(exercise, getPreviousExercisePerformance(history, exercise.prescribedExerciseId))),
@@ -97,7 +99,7 @@ const loadRestTimerState = (value: unknown): RestTimerSessionState => {
   if (isRunning) {
     const source = timer.automaticSource;
     const automaticSource = source && typeof source.id === 'string' &&
-      (source.workoutId === 'A' || source.workoutId === 'B' || source.workoutId === 'C') &&
+      isWorkoutId(source.workoutId) &&
       typeof source.startedAt === 'string' && typeof source.exerciseId === 'string' &&
       Number.isInteger(source.setIndex) && source.setIndex >= 0 ? source : undefined;
     return { status: 'running', selectedSeconds, endAt, ...(automaticSource ? { automaticSource } : {}) };
@@ -145,6 +147,7 @@ export const buildHistoryEntry = (draft: WorkoutSessionDraft): WorkoutSessionHis
   id: `${draft.workoutId}-${Date.now()}`,
   workoutId: draft.workoutId,
   workoutName: getDraftWorkoutName(draft),
+  ...(draft.planVersion && { planVersion: draft.planVersion }),
   startedAt: draft.startedAt,
   finishedAt: new Date().toISOString(),
   exercises: draft.exercises.map((sessionExercise) => {

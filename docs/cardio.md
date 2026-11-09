@@ -51,7 +51,7 @@ As permissões e limitações do navegador continuam valendo, inclusive em backg
 - Cardio participa do histórico cronológico, dos accordions de mês/ano e da exclusão.
 - Detalhes aeróbicos exibem somente os campos preenchidos, incluindo zero válido.
 - Home e resumo em Ajustes consideram a última sessão de qualquer tipo.
-- Sequência ABC, último treino A/B/C e autopreenchimento filtram somente musculação.
+- A sugestão de próxima ficha, os ciclos ABC e ABCDE e o autopreenchimento filtram somente musculação.
 - Cardio não recebe percentual de progresso nem a regra de treino esquecido >=50%.
 - Cardio aberto há pelo menos 2h possui recuperação própria: continuar, descartar
   ou informar horas/minutos para registrar. A duração manual deve ser de pelo menos

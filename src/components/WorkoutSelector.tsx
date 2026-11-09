@@ -63,7 +63,7 @@ export const WorkoutSelector = ({ onClose, returnFocusRef }: { onClose: () => vo
                 <Link key={workout.id} to={`/workout/${workout.id}`} state={{ origin: 'workout-picker' }} onClick={onClose}
                   className="touch-button flex-col items-start bg-white/5 text-zinc-100">
                   <span>{workout.name}</span>
-                  <span className="text-sm font-normal text-zinc-400">{workout.exercises.length} {workout.exercises.length === 1 ? 'exercício' : 'exercícios'}</span>
+                  <span className="text-sm font-normal text-zinc-400">{workout.description} · {workout.exercises.length} {workout.exercises.length === 1 ? 'exercício' : 'exercícios'}</span>
                 </Link>
               ))}
             </div>

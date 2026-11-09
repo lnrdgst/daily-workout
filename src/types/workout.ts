@@ -1,4 +1,10 @@
-export type WorkoutId = 'A' | 'B' | 'C';
+export const workoutOrder = ['A', 'B', 'C', 'D', 'E'] as const;
+export type WorkoutId = (typeof workoutOrder)[number];
+
+export const isWorkoutId = (id: unknown): id is WorkoutId => workoutOrder.some((workoutId) => workoutId === id);
+
+// Older strength plans have no version in persisted drafts or history.
+export type StrengthPlanVersion = 'ABCDE';
 
 export type ExerciseIcon =
   | 'squat'
@@ -40,6 +46,7 @@ export type Exercise = ExerciseDefinition & WorkoutExercise;
 
 export interface Workout {
   id: WorkoutId;
+  planVersion?: StrengthPlanVersion;
   name: string;
   description: string;
   exercises: WorkoutExercise[];
@@ -73,6 +80,7 @@ export interface ExerciseSessionState {
 export interface WorkoutSessionDraft {
   type?: 'strength';
   workoutId: WorkoutId;
+  planVersion?: StrengthPlanVersion;
   workoutName?: string;
   startedAt: string;
   exercises: ExerciseSessionState[];
@@ -102,6 +110,7 @@ export interface WorkoutSessionHistory {
   type?: 'strength';
   id: string;
   workoutId: WorkoutId;
+  planVersion?: StrengthPlanVersion;
   workoutName: string;
   startedAt: string;
   finishedAt: string;
