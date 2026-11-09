@@ -103,7 +103,7 @@ function cardsFor(draft, history = canonicalHistory, published = workoutsById) {
 
 test('the five split workouts each have five exercises and fifteen sets with the approved rep ranges', () => {
   const expected = {
-    A: [['lat-pulldown', 8, 12], ['seated-row', 8, 12], ['machine-row', 8, 12], ['barbell-curl', 10, 12], ['hammer-curl', 10, 12]],
+    A: [['lat-pulldown', 8, 12], ['seated-row', 8, 12], ['bent-over-row', 8, 12], ['barbell-curl', 10, 12], ['hammer-curl', 10, 12]],
     B: [['bench-press', 8, 12], ['incline-dumbbell-press', 8, 12], ['lateral-raise', 12, 15], ['shoulder-press', 8, 12], ['cable-pushdown', 10, 15]],
     C: [['squat', 8, 12], ['stiff', 8, 12], ['lying-leg-curl', 10, 15], ['leg-press', 10, 12], ['standing-calf-raise', 12, 15]],
     D: [['chest-press', 8, 12], ['t-bar-row', 8, 12], ['lat-pulldown', 8, 12], ['scott-curl', 10, 12], ['triceps-french', 10, 15]],
@@ -116,6 +116,41 @@ test('the five split workouts each have five exercises and fifteen sets with the
     assert.deepEqual(workout.exercises.map(({ prescribedExerciseId, repsMin, repsMax }) => [prescribedExerciseId, repsMin, repsMax]), expected[workout.id]);
     assert.deepEqual(draft.exercises.map(({ sets }) => sets.length), [3, 3, 3, 3, 3]);
   }
+});
+
+test('a saved A keeps its machine row and its loads stay separate from the new bent-over row', () => {
+  const previousWorkout = {
+    ...workoutsById.A,
+    exercises: workoutsById.A.exercises.map((item) => item.id === 'a-bent-over-row'
+      ? { id: 'a-machine-row', prescribedExerciseId: 'machine-row', sets: 3, repsMin: 8, repsMax: 12 }
+      : item),
+  };
+  const draft = storage.createWorkoutDraft(previousWorkout);
+  const machineSet = { load: '55', reps: '12', completed: true };
+  draft.exercises.find(({ slotId }) => slotId === 'a-machine-row').sets[0] = { ...machineSet, loadSource: 'manual', repsSource: 'manual' };
+  const session = store({ draft, history: [] });
+  session.act((api) => api.startWorkout('A'));
+  const resumed = session.saved().activeDraft;
+  assert.deepEqual(resumed, draft);
+  const card = cardsFor(resumed, []).find(({ sessionState }) => sessionState.slotId === 'a-machine-row');
+  assert.equal(card.exercise.name, 'Remada máquina');
+  assert.equal(card.exercise.repsMin, 8);
+  assert.equal(card.exercise.repsMax, 12);
+  session.act((api) => assert.equal(api.finishWorkout(), true));
+  const [previousEntry] = session.saved().history;
+  const previousRow = previousEntry.exercises.find(({ executedExerciseId }) => executedExerciseId === 'machine-row');
+  assert.deepEqual(previousRow.sets[0], machineSet);
+
+  const { state } = session.act((api) => api.startWorkout('A'));
+  const newRow = exercise(state, 'a-bent-over-row');
+  assert.equal(newRow.executedExerciseName, 'Remada curvada');
+  assert.ok(newRow.sets.every(({ load, reps, loadSource }) => load === '' && reps === '8' && loadSource === 'empty'));
+  session.act((api) => api.updateSet('a-bent-over-row', 0, { load: '30', reps: '10' }));
+  session.act((api) => assert.equal(api.finishWorkout(), true));
+  const { history } = session.saved();
+  assert.deepEqual(history[0], previousEntry);
+  assert.deepEqual(storage.getPreviousExercisePerformance(history, 'machine-row')[0], machineSet);
+  assert.deepEqual(storage.getPreviousExercisePerformance(history, 'bent-over-row')[0], { load: '30', reps: '10', completed: false });
 });
 
 test('every new exercise selects the principal canonical ID and immediately copies history with correct origins', () => {

@@ -6,7 +6,7 @@ export const workoutsById: Record<WorkoutId, Workout> = {
     exercises: [
       { id: 'a-lat-pulldown', prescribedExerciseId: 'lat-pulldown', sets: 3, repsMin: 8, repsMax: 12 },
       { id: 'a-seated-row', prescribedExerciseId: 'seated-row', sets: 3, repsMin: 8, repsMax: 12 },
-      { id: 'a-machine-row', prescribedExerciseId: 'machine-row', sets: 3, repsMin: 8, repsMax: 12 },
+      { id: 'a-bent-over-row', prescribedExerciseId: 'bent-over-row', sets: 3, repsMin: 8, repsMax: 12 },
       { id: 'a-barbell-curl', prescribedExerciseId: 'barbell-curl', sets: 3, repsMin: 10, repsMax: 12 },
       { id: 'a-hammer-curl', prescribedExerciseId: 'hammer-curl', sets: 3, repsMin: 10, repsMax: 12 },
     ],

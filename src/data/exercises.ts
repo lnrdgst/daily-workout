@@ -26,6 +26,7 @@ export const exerciseLibrary: ExerciseDefinition[] = [
   { id: 'triceps-rope', name: 'Tríceps na corda', muscleGroup: 'Tríceps', icon: 'triceps' },
   { id: 'chest-press', name: 'Supino máquina', muscleGroup: 'Peito', icon: 'chest-press' },
   { id: 'machine-row', name: 'Remada máquina', muscleGroup: 'Costas', icon: 'row' },
+  { id: 'bent-over-row', name: 'Remada curvada', muscleGroup: 'Costas', icon: 'row' },
   { id: 't-bar-row', name: 'Remada cavalinho', muscleGroup: 'Costas', icon: 'row' },
   { id: 'scott-curl', name: 'Rosca Scott', muscleGroup: 'Bíceps', icon: 'curl' },
   { id: 'standing-calf-raise', name: 'Elevação de panturrilhas em pé, com apoio', muscleGroup: 'Panturrilhas' },
