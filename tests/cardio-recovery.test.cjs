@@ -151,7 +151,7 @@ test('actual detector waits below threshold and retains strength policy includin
   const { legacyWorkoutsById } = load('src/data/legacyWorkouts.ts');
   for (const [workout, count, shouldRegister] of [
     [legacyWorkoutsById.A, 3, false], [legacyWorkoutsById.A, 4, true],
-    [workoutsById.A, 1, false], [workoutsById.A, 2, true],
+    [workoutsById.A, 2, false], [workoutsById.A, 3, true],
   ]) {
     const strength = createWorkoutDraft(workout);
     if (!workout.planVersion) delete strength.type;

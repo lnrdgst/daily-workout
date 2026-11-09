@@ -113,7 +113,7 @@ async function main() {
     await firstExercise().getByText('2/3 séries', { exact: true }).waitFor();
     assert.equal(await firstExercise().getByText('Concluído', { exact: true }).count(), 0);
     await firstExercise().getByRole('button', { name: 'Marcar', exact: true }).waitFor({ state: 'visible' });
-    await page.getByText('0 de 3 exercícios concluídos', { exact: true }).waitFor();
+    await page.getByText('0 de 5 exercícios concluídos', { exact: true }).waitFor();
     assert.equal((await state()).restTimer.status, 'ready');
     console.log('PASS completed exercise reopens, displays 2/3 and recalculates workout progress');
 

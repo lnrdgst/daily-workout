@@ -86,10 +86,10 @@ test('legacy drafts remain readable without normalization or localStorage reset'
 test('prescribed alternatives start with the principal canonical exercise without reading ambiguous legacy history', () => {
   const draft = storage.createWorkoutDraft(workoutsById.E, [{ exercises: [{ exerciseId: 'leg-curl-a', sets: sets('55', '10') }] }]);
   const curl = draft.exercises.find((exercise) => exercise.exerciseId === 'e-leg-curl');
-  assert.deepEqual(curl.prescribedExerciseIds, ['lying-leg-curl', 'seated-leg-curl']);
-  assert.equal(curl.prescribedExerciseId, 'lying-leg-curl');
-  assert.equal(curl.executedExerciseId, 'lying-leg-curl');
-  assert.equal(curl.executedExerciseName, 'Mesa flexora');
+  assert.deepEqual(curl.prescribedExerciseIds, ['seated-leg-curl', 'lying-leg-curl']);
+  assert.equal(curl.prescribedExerciseId, 'seated-leg-curl');
+  assert.equal(curl.executedExerciseId, 'seated-leg-curl');
+  assert.equal(curl.executedExerciseName, 'Cadeira flexora');
   assert.equal(curl.sets[0].load, '');
   assert.equal(curl.sets[0].reps, '10');
   assert.equal(curl.slotId, 'e-leg-curl');

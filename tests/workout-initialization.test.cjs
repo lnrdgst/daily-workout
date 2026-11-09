@@ -101,20 +101,20 @@ function cardsFor(draft, history = canonicalHistory, published = workoutsById) {
   return walk(WorkoutPage()).filter((n) => n.type === ExerciseCard).map((n) => n.props);
 }
 
-test('the five split workouts each have three exercises and three sets with the approved rep ranges', () => {
+test('the five split workouts each have five exercises and fifteen sets with the approved rep ranges', () => {
   const expected = {
-    A: [['lat-pulldown', 8, 12], ['seated-row', 8, 12], ['barbell-curl', 10, 12]],
-    B: [['bench-press', 8, 12], ['lateral-raise', 12, 15], ['cable-pushdown', 10, 15]],
-    C: [['squat', 8, 12], ['stiff', 8, 12], ['standing-calf-raise', 12, 15]],
-    D: [['incline-dumbbell-press', 8, 12], ['machine-row', 8, 12], ['shoulder-press', 8, 12]],
-    E: [['leg-press', 10, 12], ['lying-leg-curl', 10, 15], ['crunch', 10, 15]],
+    A: [['lat-pulldown', 8, 12], ['seated-row', 8, 12], ['machine-row', 8, 12], ['barbell-curl', 10, 12], ['hammer-curl', 10, 12]],
+    B: [['bench-press', 8, 12], ['incline-dumbbell-press', 8, 12], ['lateral-raise', 12, 15], ['shoulder-press', 8, 12], ['cable-pushdown', 10, 15]],
+    C: [['squat', 8, 12], ['stiff', 8, 12], ['lying-leg-curl', 10, 15], ['leg-press', 10, 12], ['standing-calf-raise', 12, 15]],
+    D: [['chest-press', 8, 12], ['t-bar-row', 8, 12], ['lat-pulldown', 8, 12], ['scott-curl', 10, 12], ['triceps-french', 10, 15]],
+    E: [['leg-press', 10, 12], ['seated-leg-curl', 10, 15], ['stiff', 8, 12], ['standing-calf-raise', 12, 15], ['crunch', 10, 15]],
   };
   assert.deepEqual(workouts.map(({ id }) => id), Object.keys(expected));
   for (const workout of workouts) {
     const draft = storage.createWorkoutDraft(workout);
     assert.equal(draft.planVersion, 'ABCDE');
     assert.deepEqual(workout.exercises.map(({ prescribedExerciseId, repsMin, repsMax }) => [prescribedExerciseId, repsMin, repsMax]), expected[workout.id]);
-    assert.deepEqual(draft.exercises.map(({ sets }) => sets.length), [3, 3, 3]);
+    assert.deepEqual(draft.exercises.map(({ sets }) => sets.length), [3, 3, 3, 3, 3]);
   }
 });
 
@@ -314,8 +314,49 @@ test('frozen prescriptions retain options, substitutions and rep ranges after th
   assert.equal(h.saved().history.at(-1).exercises[0].executedExerciseId, 'hack-squat');
 });
 
-test('D and E preserve their alternative, series and automatic rest when rehydrated and finalized', () => {
-  for (const [id, slotId, alternative] of [['D', 'd-machine-row', 't-bar-row'], ['E', 'e-leg-curl', 'seated-leg-curl']]) {
+test('the previous three-exercise D resumes and finalizes from its frozen prescription', () => {
+  const previousWorkout = {
+    ...workoutsById.D,
+    exercises: [
+      { id: 'd-incline-dumbbell-press', prescribedExerciseId: 'incline-dumbbell-press', sets: 3, repsMin: 8, repsMax: 12 },
+      { id: 'd-machine-row', prescribedExerciseId: 'machine-row', prescribedExerciseIds: ['machine-row', 't-bar-row'], sets: 3, repsMin: 8, repsMax: 12 },
+      { id: 'd-shoulder-press', prescribedExerciseId: 'shoulder-press', sets: 3, repsMin: 8, repsMax: 12 },
+    ],
+  };
+  const draft = storage.createWorkoutDraft(previousWorkout);
+  const firstExercise = draft.exercises[0];
+  firstExercise.sets.forEach((set) => { set.completed = true; });
+  firstExercise.sets[0] = { load: '27.5', reps: '10', completed: true, loadSource: 'manual', repsSource: 'autofilled' };
+  const restTimer = { status: 'running', selectedSeconds: 90, endAt: Date.now() + 60000,
+    automaticSource: { id: 'previous-d-rest', workoutId: 'D', startedAt: draft.startedAt, exerciseId: firstExercise.exerciseId, setIndex: 0 },
+  };
+  const session = store({ draft, restTimer });
+  session.act((api) => { api.startWorkout('D'); api.startWorkout('E'); });
+  const saved = session.saved();
+  assert.deepEqual(saved.activeDraft, draft);
+  assert.deepEqual(saved.restTimer, restTimer);
+  const cards = cardsFor(saved.activeDraft);
+  assert.deepEqual(cards.map(({ sessionState }) => sessionState.executedExerciseId), ['incline-dumbbell-press', 'machine-row', 'shoulder-press']);
+  assert.deepEqual(cards[1].exercise.prescribedExerciseIds, ['machine-row', 't-bar-row']);
+  assert.deepEqual(getWorkoutProgress(saved.activeDraft), { totalExercises: 3, completedExercises: 1, percentage: 33 });
+
+  session.act((api) => assert.equal(api.finishWorkout(), true));
+  const result = session.saved();
+  assert.equal(result.activeDraft, null);
+  assert.deepEqual(result.history.slice(0, -1), saved.history);
+  const entry = result.history.at(-1);
+  assert.equal(entry.planVersion, 'ABCDE');
+  assert.equal(entry.startedAt, draft.startedAt);
+  assert.deepEqual(entry.exercises.map(({ executedExerciseId, sets }) => [executedExerciseId, sets.length]), [
+    ['incline-dumbbell-press', 3], ['machine-row', 3], ['shoulder-press', 3],
+  ]);
+  assert.deepEqual(entry.exercises[0].sets[0], { load: '27.5', reps: '10', completed: true });
+  const next = storage.createWorkoutDraft(workoutsById.B, result.history);
+  assert.equal(next.exercises.find(({ executedExerciseId }) => executedExerciseId === 'incline-dumbbell-press').sets[0].load, '27.5');
+});
+
+test('new D and E preserve their alternative, series and automatic rest when rehydrated and finalized', () => {
+  for (const [id, slotId, alternative] of [['D', 'd-machine-row', 'machine-row'], ['E', 'e-leg-curl', 'lying-leg-curl']]) {
     const h = store();
     h.act((api) => api.startWorkout(id));
     const swapped = h.act((api) => api.selectExerciseOption(slotId, alternative));
@@ -328,12 +369,12 @@ test('D and E preserve their alternative, series and automatic rest when rehydra
     assert.deepEqual(reloaded.saved().activeDraft, saved.activeDraft);
     assert.deepEqual(reloaded.saved().restTimer, saved.restTimer);
     assert.equal(reloaded.saved().restTimer.automaticSource.workoutId, id);
-    assert.equal(getWorkoutProgress(reloaded.saved().activeDraft).totalExercises, 3);
+    assert.equal(getWorkoutProgress(reloaded.saved().activeDraft).totalExercises, 5);
     reloaded.act((api) => api.finishWorkout());
     const result = reloaded.saved().history.at(-1);
     assert.equal(result.planVersion, 'ABCDE');
     assert.equal(result.workoutId, id);
-    assert.equal(result.exercises.length, 3);
+    assert.equal(result.exercises.length, 5);
     assert.equal(result.exercises[1].executedExerciseId, alternative);
     assert.equal(result.exercises[1].sets[0].completed, true);
   }

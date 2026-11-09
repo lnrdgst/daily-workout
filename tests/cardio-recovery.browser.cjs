@@ -163,7 +163,7 @@ async function main() {
     await page.getByRole('dialog').waitFor({ state: 'hidden' });
     console.log('PASS no overlapping page/global dialogs');
 
-    for (const [legacy, completed, shouldRegister] of [[true, 3, false], [true, 4, true], [false, 1, false], [false, 2, true]]) {
+    for (const [legacy, completed, shouldRegister] of [[true, 3, false], [true, 4, true], [false, 2, false], [false, 3, true]]) {
       await page.goto(`${baseURL}/workout/A`);
       await page.getByRole('button', { name: 'Iniciar treino', exact: true }).click();
       const strength = (await state()).activeDraft;

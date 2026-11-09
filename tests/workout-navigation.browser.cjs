@@ -162,7 +162,7 @@ async function main() {
     await openSelector();
     await select('/workout/E');
     await button('Iniciar treino').click();
-    await page.getByText('0 de 3 exercícios concluídos', { exact: true }).waitFor();
+    await page.getByText('0 de 5 exercícios concluídos', { exact: true }).waitFor();
     await page.getByRole('button', { name: /^Editar carga de Leg press, série 1\./ }).click();
     const keypad = page.getByRole('dialog', { name: 'Leg press', exact: true });
     for (const key of ['2', '0', 'Vírgula decimal', '5', 'Confirmar']) {
@@ -179,7 +179,7 @@ async function main() {
     await finishStrength();
     const history = (await appState()).history;
     assert.deepEqual(history.map(({ workoutId, planVersion, exercises }) => [workoutId, planVersion, exercises.length]), [
-      ['C', undefined, 7], ['E', 'ABCDE', 3],
+      ['C', undefined, 7], ['E', 'ABCDE', 5],
     ]);
     await page.getByRole('link', { name: 'Treinos', exact: true }).click();
     await page.getByRole('link', { name: 'Ver treino A', exact: true }).waitFor();

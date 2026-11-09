@@ -259,7 +259,7 @@ async function main() {
     await page.goto(`${baseURL}/workout/A`);
     await click('Iniciar treino');
     const reps = page.getByRole('button', { name: /^Editar repetições/ });
-    assert.deepEqual(await reps.allTextContents(), ['12', '11', '10', '8', '8', '8', '10', '10', '10']);
+    assert.deepEqual(await reps.allTextContents(), ['12', '11', '10', '8', '8', '8', '8', '8', '8', '10', '10', '10', '10', '10', '10']);
     await page.getByRole('button', { name: 'Aumentar repetições', exact: true }).first().click();
     assert.equal(await reps.first().textContent(), '13');
     await reps.first().click();
@@ -295,9 +295,17 @@ async function main() {
     for (const workoutId of ['B', 'C', 'D', 'E']) {
       await page.goto(`${baseURL}/workout/${workoutId}`);
       await click('Iniciar treino');
-      assert.equal((await state()).activeDraft.workoutId, workoutId);
-      assert.ok((await state()).activeDraft.exercises.every((exercise) => exercise.sets.every((set) => !set.completed && set.load === '')));
+      const active = (await state()).activeDraft;
+      assert.equal(active.workoutId, workoutId);
+      assert.deepEqual(active.exercises.map(({ sets }) => sets.length), [3, 3, 3, 3, 3]);
+      assert.ok(active.exercises.every((exercise) => exercise.sets.every((set) => !set.completed)));
+      if (workoutId === 'D') {
+        const pull = active.exercises.find(({ executedExerciseId }) => executedExerciseId === 'lat-pulldown');
+        assert.equal(pull.sets[0].load, '30');
+        assert.equal(pull.sets[0].loadSource, 'history');
+      }
       for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Marcar', exact: true }).first().click();
+      await page.getByText('1 de 5 exercícios concluídos', { exact: true }).waitFor();
       await page.clock.runFor(600);
       const completedExercise = page.getByRole('button', { name: /Concluído.*3\/3 séries/ }).first();
       assert.equal(await completedExercise.getAttribute('aria-expanded'), 'false');
