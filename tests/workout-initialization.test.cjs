@@ -104,7 +104,7 @@ function cardsFor(draft, history = canonicalHistory, published = workoutsById) {
 test('the five split workouts each have five exercises and fifteen sets with the approved rep ranges', () => {
   const expected = {
     A: [['lat-pulldown', 8, 12], ['seated-row', 8, 12], ['bent-over-row', 8, 12], ['barbell-curl', 10, 12], ['hammer-curl', 10, 12]],
-    B: [['bench-press', 8, 12], ['incline-dumbbell-press', 8, 12], ['lateral-raise', 12, 15], ['shoulder-press', 8, 12], ['cable-pushdown', 10, 15]],
+    B: [['bench-press', 8, 12], ['incline-dumbbell-press', 8, 12], ['lateral-raise', 12, 15], ['cable-pushdown', 10, 15], ['triceps-rope', 10, 15]],
     C: [['squat', 8, 12], ['stiff', 8, 12], ['lying-leg-curl', 10, 15], ['leg-press', 10, 12], ['standing-calf-raise', 12, 15]],
     D: [['chest-press', 8, 12], ['t-bar-row', 8, 12], ['lat-pulldown', 8, 12], ['scott-curl', 10, 12], ['triceps-french', 10, 15]],
     E: [['leg-press', 10, 12], ['seated-leg-curl', 10, 15], ['stiff', 8, 12], ['standing-calf-raise', 12, 15], ['crunch', 10, 15]],
@@ -151,6 +151,40 @@ test('a saved A keeps its machine row and its loads stay separate from the new b
   assert.deepEqual(history[0], previousEntry);
   assert.deepEqual(storage.getPreviousExercisePerformance(history, 'machine-row')[0], machineSet);
   assert.deepEqual(storage.getPreviousExercisePerformance(history, 'bent-over-row')[0], { load: '30', reps: '10', completed: false });
+});
+
+test('a saved B keeps its shoulder press and new drafts use the canonical rope history', () => {
+  const previousWorkout = {
+    ...workoutsById.B,
+    exercises: [
+      ...workoutsById.B.exercises.slice(0, 3),
+      { id: 'b-shoulder-press', prescribedExerciseId: 'shoulder-press', sets: 3, repsMin: 8, repsMax: 12 },
+      workoutsById.B.exercises.find(({ id }) => id === 'b-cable-pushdown'),
+    ],
+  };
+  const draft = storage.createWorkoutDraft(previousWorkout);
+  const shoulderSet = { load: '32', reps: '10', completed: true };
+  draft.exercises.find(({ slotId }) => slotId === 'b-shoulder-press').sets[0] = shoulderSet;
+  const session = store({ draft });
+
+  session.act((api) => api.startWorkout('B'));
+  const resumed = session.saved().activeDraft;
+  assert.deepEqual(resumed, draft);
+  const cards = cardsFor(resumed);
+  assert.deepEqual(cards.map(({ sessionState }) => sessionState.slotId), draft.exercises.map(({ slotId }) => slotId));
+  assert.equal(cards[3].exercise.name, 'Desenvolvimento');
+  assert.deepEqual(cards[3].sessionState.sets[0], shoulderSet);
+
+  session.act((api) => assert.equal(api.finishWorkout(), true));
+  const { history } = session.saved();
+  assert.deepEqual(history.slice(0, -1), canonicalHistory);
+  assert.deepEqual(storage.getPreviousExercisePerformance(history, 'shoulder-press')[0], shoulderSet);
+
+  const { state } = session.act((api) => api.startWorkout('B'));
+  const rope = exercise(state, 'b-triceps-rope');
+  assert.equal(exercise(state, 'b-shoulder-press'), undefined);
+  assert.equal(rope.executedExerciseId, 'triceps-rope');
+  assert.deepEqual(values(rope.sets), values(priorSets('triceps-rope')));
 });
 
 test('every new exercise selects the principal canonical ID and immediately copies history with correct origins', () => {

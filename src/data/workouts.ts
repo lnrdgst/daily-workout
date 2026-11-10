@@ -17,8 +17,8 @@ export const workoutsById: Record<WorkoutId, Workout> = {
       { id: 'b-bench-press', prescribedExerciseId: 'bench-press', sets: 3, repsMin: 8, repsMax: 12 },
       { id: 'b-incline-dumbbell-press', prescribedExerciseId: 'incline-dumbbell-press', sets: 3, repsMin: 8, repsMax: 12 },
       { id: 'b-lateral-raise', prescribedExerciseId: 'lateral-raise', sets: 3, repsMin: 12, repsMax: 15 },
-      { id: 'b-shoulder-press', prescribedExerciseId: 'shoulder-press', sets: 3, repsMin: 8, repsMax: 12 },
       { id: 'b-cable-pushdown', prescribedExerciseId: 'cable-pushdown', sets: 3, repsMin: 10, repsMax: 15 },
+      { id: 'b-triceps-rope', prescribedExerciseId: 'triceps-rope', sets: 3, repsMin: 10, repsMax: 15 },
     ],
   },
   C: {
