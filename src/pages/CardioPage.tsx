@@ -3,18 +3,68 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CardioIntervals } from '@/components/CardioIntervals';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { MainNavigation } from '@/components/MainNavigation';
+import { SetNumericKeypad } from '@/components/SetNumericKeypad';
 import { ViewBackButton } from '@/components/ViewBackButton';
-import { cardioModalities, isCardioModality } from '@/data/cardio';
+import { cardioModalities, isCardioModality, isTreadmillActivity, treadmillActivities } from '@/data/cardio';
 import { useWorkoutDuration } from '@/hooks/useWorkoutDuration';
 import { useWorkoutStore } from '@/hooks/useWorkoutStore';
 import { useWorkoutPreviewNavigation } from '@/hooks/useWorkoutPreviewNavigation';
 import { getSessionPath } from '@/utils/sessions';
 import { isShortCardioSession } from '@/utils/cardioSession';
-import type { CardioData } from '@/types/workout';
+import { formatSetNumber, numberToDecimalString } from '@/utils/setNumericEntry';
+import type { CardioData, CardioSessionDraft } from '@/types/workout';
 
 const numericFields = [
-  ['distanceKm', 'Distância (km)'], ['averageSpeedKmH', 'Velocidade média (km/h)'], ['resistance', 'Resistência'],
+  { key: 'distanceKm', label: 'Distância', unit: 'km' },
+  { key: 'averageSpeedKmH', label: 'Velocidade média', unit: 'km/h' },
+  { key: 'resistance', label: 'Resistência', unit: undefined },
 ] as const;
+
+const metricButtonClass = 'touch-button mt-2 w-full justify-start break-all rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-base focus-visible:border-accent-400';
+
+const CardioActivityFields = ({ draft, updateCardio }: { draft: CardioSessionDraft; updateCardio: (patch: Partial<CardioData>) => void }) => {
+  const [editing, setEditing] = useState<(typeof numericFields)[number] | null>(null);
+  const metricValue = (key: (typeof numericFields)[number]['key']) =>
+    draft[key] === undefined ? '' : numberToDecimalString(draft[key]);
+
+  return (
+    <section className="panel space-y-4 p-5">
+      <h3 className="font-semibold">Dados da atividade <span className="text-xs font-normal text-zinc-500">Opcionais</span></h3>
+      {draft.modality === 'treadmill' && (
+        <label className="block text-sm text-zinc-300">Tipo de atividade na esteira
+          <select value={draft.treadmillActivity ?? ''} onChange={({ target: { value } }) => {
+            if (value === '' || isTreadmillActivity(value)) updateCardio({ treadmillActivity: value || undefined });
+          }} className="mt-2 w-full rounded-2xl border border-white/10 bg-surface-800 px-4 py-3 text-base focus-visible:border-accent-400">
+            <option value="">Não informado</option>
+            {Object.entries(treadmillActivities).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+          </select>
+        </label>
+      )}
+      {numericFields.map((field) => {
+        const { key, label, unit } = field;
+        const value = formatSetNumber(metricValue(key));
+        const fieldLabel = unit ? `${label} (${unit})` : label;
+        return <div key={key} className="text-sm text-zinc-300">
+          <span>{fieldLabel}</span>
+          <button type="button" aria-haspopup="dialog" aria-label={`${fieldLabel}. Valor atual: ${value || 'vazio'}`}
+            onClick={(event) => { event.currentTarget.focus({ preventScroll: true }); setEditing(field); }}
+            className={metricButtonClass}>
+            {value || <span className="text-zinc-400">Opcional</span>}
+          </button>
+        </div>;
+      })}
+      <label className="block text-sm text-zinc-300">Observações
+        <textarea value={draft.notes ?? ''} onChange={(event) => updateCardio({ notes: event.target.value })} rows={3}
+          placeholder="Opcional" className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-base outline-none focus:border-accent-400" />
+      </label>
+      {editing && <SetNumericKeypad title={cardioModalities[draft.modality]} label={editing.label} unit={editing.unit}
+        mode="decimal" value={metricValue(editing.key)} onCancel={() => setEditing(null)} onConfirm={(value) => {
+          updateCardio({ [editing.key]: value === '' ? undefined : Number(value) });
+          setEditing(null);
+        }} />}
+    </section>
+  );
+};
 
 export const CardioPage = () => {
   const { modality } = useParams();
@@ -55,23 +105,7 @@ export const CardioPage = () => {
       {draft && (
         <>
           <CardioIntervals key={draft.startedAt} draft={draft} />
-          <section className="panel space-y-4 p-5">
-            <h3 className="font-semibold">Dados da atividade <span className="text-xs font-normal text-zinc-500">Opcionais</span></h3>
-            {numericFields.map(([key, label]) => (
-              <label key={key} className="block text-sm text-zinc-300">{label}
-                <input type="number" inputMode="decimal" min="0" step="any" value={draft[key] ?? ''} placeholder="Opcional"
-                  onChange={(event) => {
-                    const raw = event.target.value;
-                    const value = raw === '' ? undefined : Number(raw);
-                    if (value === undefined || (Number.isFinite(value) && value >= 0)) updateCardio({ [key]: value } as Partial<CardioData>);
-                  }} className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-base outline-none focus:border-accent-400" />
-              </label>
-            ))}
-            <label className="block text-sm text-zinc-300">Observações
-              <textarea value={draft.notes ?? ''} onChange={(event) => updateCardio({ notes: event.target.value })} rows={3}
-                placeholder="Opcional" className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-base outline-none focus:border-accent-400" />
-            </label>
-          </section>
+          <CardioActivityFields key={draft.startedAt} draft={draft} updateCardio={updateCardio} />
           <button type="button" onClick={() => setDialog(isShortCardioSession(draft) ? 'short' : 'finish')} className="touch-button w-full accent-solid text-base font-semibold">Finalizar treino</button>
           <button type="button" onClick={() => setDialog('discard')} className="touch-button w-full bg-white/5 text-zinc-300">Descartar treino</button>
         </>

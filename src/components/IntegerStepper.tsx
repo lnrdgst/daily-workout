@@ -1,5 +1,5 @@
-import { useId } from 'react';
-import { adjustSetReps, formatSetNumber } from '@/utils/setNumericEntry';
+import { useId, type RefObject } from 'react';
+import { adjustSetReps, formatSetNumber, type NumericEntryMode } from '@/utils/setNumericEntry';
 
 interface IntegerStepperProps {
   label: string;
@@ -10,15 +10,14 @@ interface IntegerStepperProps {
   max?: number;
   invalid?: boolean;
   describedBy?: string;
-  editor?: { open: () => void; label: string };
+  editor: { open: () => void; label: string; mode: NumericEntryMode; ref?: RefObject<HTMLButtonElement> };
 }
 
 export const IntegerStepper = ({ label, decreaseLabel, increaseLabel, value, onChange, max, invalid, describedBy, editor }: IntegerStepperProps) => {
   const id = useId();
   const clamp = (number: number) => Math.min(max ?? Infinity, Math.max(0, number));
   const adjust = (delta: -1 | 1) => {
-    // Set editing supports fractions; the native duration control stays integer-only.
-    if (editor) {
+    if (editor.mode === 'decimal') {
       onChange(adjustSetReps(value, delta));
       return;
     }
@@ -33,20 +32,11 @@ export const IntegerStepper = ({ label, decreaseLabel, increaseLabel, value, onC
       <button type="button" aria-label={decreaseLabel} onClick={() => adjust(-1)} className={buttonClass}>
         <span aria-hidden="true">−</span>
       </button>
-      {editor ? <button id={id} type="button" aria-label={editor.label} aria-haspopup="dialog" onClick={editor.open}
+      <button ref={editor.ref} id={id} type="button" aria-label={editor.label} aria-haspopup="dialog" onClick={editor.open}
+        aria-invalid={invalid} aria-describedby={describedBy}
         className="min-h-12 min-w-0 w-full break-all bg-transparent py-3 text-center text-base tabular-nums text-white outline-none focus-visible:bg-white/5 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-400">
         {formatSetNumber(value) || '—'}
-      </button> : <input id={id} type="text" inputMode="numeric" pattern="[0-9]*" value={value}
-        aria-invalid={invalid} aria-describedby={describedBy}
-        onChange={(event) => {
-          const next = event.target.value;
-          if (/^\d*$/.test(next) && Number.isFinite(Number(next))) onChange(next);
-        }}
-        onBlur={() => {
-          if (max !== undefined && value !== '' && Number(value) > max) onChange(String(max));
-        }}
-        className="min-w-0 w-full bg-transparent py-3 text-center text-base tabular-nums text-white outline-none focus-visible:bg-white/5"
-        placeholder="0" />}
+      </button>
       <button type="button" aria-label={increaseLabel} onClick={() => adjust(1)} className={buttonClass}>
         <span aria-hidden="true">+</span>
       </button>

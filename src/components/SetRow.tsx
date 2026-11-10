@@ -54,10 +54,10 @@ export const SetRow = ({ index, exerciseName, isNextPending, set, previousSet, o
 
         <IntegerStepper label="Reps" decreaseLabel="Diminuir repetições" increaseLabel="Aumentar repetições"
           value={set.reps} onChange={(reps) => onChange({ reps })}
-          editor={{ open: () => setEditingField('reps'), label: `Editar repetições de ${exerciseName}, série ${index + 1}. Valor atual: ${formatSetNumber(set.reps) || 'vazio'}` }} />
+          editor={{ mode: 'decimal', open: () => setEditingField('reps'), label: `Editar repetições de ${exerciseName}, série ${index + 1}. Valor atual: ${formatSetNumber(set.reps) || 'vazio'}` }} />
       </div>
-      {editingField && <SetNumericKeypad key={editingField} exerciseName={exerciseName} seriesNumber={index + 1}
-        field={editingField} value={set[editingField]}
+      {editingField && <SetNumericKeypad key={editingField} title={exerciseName} context={`Série ${index + 1}`}
+        label={editingField === 'load' ? 'Carga' : 'Repetições'} unit={editingField === 'load' ? 'kg' : 'reps'} value={set[editingField]}
         onConfirm={(value) => {
           if (value !== set[editingField]) onChange({ [editingField]: value });
           setEditingField(null);

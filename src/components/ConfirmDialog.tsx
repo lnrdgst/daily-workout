@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef } from 'react';
 import { DialogSuppressionContext } from '@/components/DialogSuppressionContext';
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -11,6 +11,7 @@ interface ConfirmDialogProps {
   destructive?: boolean;
   confirmDisabled?: boolean;
   children?: ReactNode;
+  initialFocusRef?: RefObject<HTMLButtonElement>;
   onConfirm: () => void;
   onCancel: () => void;
   additionalAction?: { label: string; onClick: () => void };
@@ -25,6 +26,7 @@ export const ConfirmDialog = ({
   destructive = false,
   confirmDisabled = false,
   children,
+  initialFocusRef,
   onConfirm,
   onCancel,
   additionalAction,
@@ -43,7 +45,8 @@ export const ConfirmDialog = ({
       return;
     }
 
-    cancelButtonRef.current?.focus();
+    if (initialFocusRef?.current) initialFocusRef.current.focus({ preventScroll: true });
+    else cancelButtonRef.current?.focus();
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         onCancelRef.current();
@@ -52,7 +55,7 @@ export const ConfirmDialog = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open]);
+  }, [open, initialFocusRef]);
 
   if (!open) {
     return null;

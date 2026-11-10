@@ -36,9 +36,22 @@ async function main() {
     document.dispatchEvent(new Event('visibilitychange'));
     window.dispatchEvent(new Event('focus'));
   });
+  const hoursField = page.getByRole('button', { name: /^Horas\./ });
+  const minutesField = page.getByRole('button', { name: /^Minutos\./ });
+  const setNumber = async (field, value) => {
+    await field.click();
+    const pad = page.locator('dialog[open]');
+    await pad.waitFor();
+    assert.equal(await page.getByRole('dialog').count(), 1);
+    if (value === '') await action('Limpar');
+    else for (const key of value) await page.keyboard.press(key);
+    await action('Confirmar');
+    await pad.waitFor({ state: 'hidden' });
+    assert.equal(await field.evaluate((element) => element === document.activeElement), true);
+  };
   const fill = async (hours, minutes) => {
-    await page.getByLabel('Horas', { exact: true }).fill(hours);
-    await page.getByLabel('Minutos', { exact: true }).fill(minutes);
+    await setNumber(hoursField, hours);
+    await setNumber(minutesField, minutes);
   };
   try {
     await seed({ ...draft, startedAt: new Date(now - 7199000).toISOString() });
@@ -68,27 +81,35 @@ async function main() {
     await page.getByText('Atividade ainda em andamento', { exact: true }).waitFor();
     assert.deepEqual(await state(), initial);
     await action('Encerrar e registrar');
-    assert.equal(await page.getByLabel('Minutos', { exact: true }).inputValue(), '');
-    const hoursInput = page.getByLabel('Horas', { exact: true });
-    const minutesInput = page.getByLabel('Minutos', { exact: true });
+    assert.equal(await minutesField.innerText(), '—');
     await page.getByRole('button', { name: 'Diminuir horas', exact: true }).click();
-    assert.equal(await hoursInput.inputValue(), '0');
+    assert.equal(await hoursField.innerText(), '0');
     await page.getByRole('button', { name: 'Aumentar minutos', exact: true }).click();
-    assert.equal(await minutesInput.inputValue(), '1');
+    assert.equal(await minutesField.innerText(), '1');
     await fill('2', '59');
     await page.getByRole('button', { name: 'Aumentar horas', exact: true }).click();
-    assert.equal(await hoursInput.inputValue(), '3');
+    assert.equal(await hoursField.innerText(), '3');
     await page.getByRole('button', { name: 'Aumentar minutos', exact: true }).click();
-    assert.equal(await minutesInput.inputValue(), '59');
-    await minutesInput.fill('80');
-    assert.equal(await minutesInput.inputValue(), '80');
-    assert.equal(await minutesInput.evaluate((el) => el === document.activeElement), true);
-    await hoursInput.focus();
-    assert.equal(await minutesInput.inputValue(), '59');
-    await minutesInput.fill('');
-    await minutesInput.pressSequentially('40');
-    assert.equal(await minutesInput.inputValue(), '40');
-    assert.equal(await minutesInput.evaluate((el) => el === document.activeElement), true);
+    assert.equal(await minutesField.innerText(), '59');
+    await setNumber(minutesField, '80');
+    await hoursField.focus();
+    assert.equal(await minutesField.innerText(), '80');
+    await action('Registrar atividade');
+    await page.getByText('Informe horas inteiras e minutos de 0 a 59.', { exact: true }).waitFor();
+    await minutesField.click();
+    const keypad = page.locator('dialog[open]');
+    assert.equal(await page.getByRole('dialog').count(), 1);
+    assert.equal(await keypad.getByRole('button', { name: 'Vírgula decimal' }).count(), 0);
+    assert.equal(await keypad.locator('input, textarea, [contenteditable]').count(), 0);
+    await page.keyboard.press('4');
+    await page.keyboard.press('.');
+    await page.keyboard.press('0');
+    assert.match(await keypad.locator('output').innerText(), /40/);
+    await page.screenshot({ path: 'dist/cardio-qa/artifacts/recovery-keypad-320.png', animations: 'disabled' });
+    await page.keyboard.press('Escape');
+    assert.equal(await minutesField.innerText(), '80');
+    assert.equal(await minutesField.evaluate((el) => el === document.activeElement), true);
+    assert.deepEqual(await state(), initial);
     for (const [hours, minutes] of [['0', '0'], ['5', '0'], ['', '40']]) {
       await fill(hours, minutes); await action('Registrar atividade');
       await page.getByRole('alert').waitFor();
@@ -162,6 +183,31 @@ async function main() {
     await page.waitForURL('**/history');
     await page.getByRole('dialog').waitFor({ state: 'hidden' });
     console.log('PASS no overlapping page/global dialogs');
+
+    const treadmill = { ...draft, modality: 'treadmill', treadmillActivity: 'mixed', distanceKm: 2.34567, averageSpeedKmH: 5.5,
+      startedAt: new Date(await page.evaluate(() => Date.now()) - 7199000).toISOString() };
+    await seed(treadmill);
+    await page.getByRole('button', { name: /^Velocidade média \(km\/h\)\./ }).click();
+    await page.locator('dialog[open]').waitFor();
+    await page.keyboard.press('9');
+    await page.clock.runFor(1000);
+    await returnFromBackground();
+    await page.getByText('Atividade ainda em andamento', { exact: true }).waitFor();
+    assert.equal(await page.locator('dialog[open]').count(), 0);
+    assert.equal(await page.getByRole('dialog').count(), 1);
+    assert.equal(await page.evaluate(() => document.documentElement.style.overflow), '');
+    assert.deepEqual((await state()).activeDraft, treadmill);
+    await action('Encerrar e registrar');
+    await fill('0', '40');
+    await action('Registrar atividade');
+    await page.waitForURL('**/history');
+    const recovered = (await state()).history[0];
+    assert.equal(recovered.modality, 'treadmill');
+    assert.equal(recovered.treadmillActivity, 'mixed');
+    assert.equal(recovered.averageSpeedKmH, 5.5);
+    assert.equal(recovered.distanceKm, 2.34567);
+    assert.equal(recovered.completionSource, 'stale-recovery');
+    console.log('PASS treadmill recovery replaces open keypad without committing temporary data');
 
     for (const [legacy, completed, shouldRegister] of [[true, 3, false], [true, 4, true], [false, 2, false], [false, 3, true]]) {
       await page.goto(`${baseURL}/workout/A`);

@@ -36,6 +36,7 @@ function renderComponent(file, name, initialProps, env = {}) {
   const hooks = {
     ...React,
     useId: () => 'numeric-editor-test',
+    useContext: () => false,
     useState: (initial) => {
       const index = cursor++;
       if (!(index in slots)) slots[index] = typeof initial === 'function' ? initial() : initial;
@@ -68,7 +69,7 @@ function keypad(props = {}) {
   const confirmed = [];
   let canceled = 0;
   const view = renderComponent('src/components/SetNumericKeypad.tsx', 'SetNumericKeypad', {
-    exerciseName: 'Supino reto', seriesNumber: 2, field: 'load', value: '24.5',
+    title: 'Supino reto', context: 'Série 2', label: 'Carga', unit: 'kg', value: '24.5',
     onConfirm: (v) => confirmed.push(v), onCancel: () => { canceled++; }, ...props,
   });
   return {
@@ -77,7 +78,7 @@ function keypad(props = {}) {
     value: () => text(nodes(view.render()).find((n) => n.type === 'output')).replace(/ (kg|reps)$/, ''),
     key: (key, modifiers = {}) => {
       let prevented = false;
-      view.render().props.onKeyDown({ key, preventDefault: () => { prevented = true; }, ...modifiers });
+      view.render().props.onKeyDown({ key, preventDefault: () => { prevented = true; }, stopPropagation() {}, ...modifiers });
       return prevented;
     },
   };
@@ -95,9 +96,10 @@ test('load and repetitions open the contextual keypad without an editable input 
     assert.equal(trigger.props['aria-haspopup'], 'dialog');
     trigger.props.onClick();
     const sheet = nodes(view.render()).find((n) => n.type?.name === 'SetNumericKeypad');
-    assert.equal(sheet.props.exerciseName, 'Supino reto');
-    assert.equal(sheet.props.seriesNumber, 2);
-    assert.equal(sheet.props.field, field);
+    assert.equal(sheet.props.title, 'Supino reto');
+    assert.equal(sheet.props.context, 'Série 2');
+    assert.equal(sheet.props.label, field === 'load' ? 'Carga' : 'Repetições');
+    assert.equal(sheet.props.unit, field === 'load' ? 'kg' : 'reps');
     assert.equal(sheet.props.value, field === 'load' ? '24.5' : '18.5');
     assert.ok(!nodes(view.render()).some((n) => ['input', 'textarea'].includes(n.type) || n.props?.contentEditable));
     const pad = keypad(sheet.props);
@@ -115,7 +117,7 @@ test('first digit replaces the old value; further keys compose integers and comm
     pad.click('Confirmar');
     assert.deepEqual(pad.confirmed, [expected]);
   }
-  const pad = keypad({ field: 'reps' });
+  const pad = keypad({ label: 'Repetições', unit: 'reps' });
   ['1', '8', ',', '5'].forEach((key) => pad.key(key));
   assert.equal(pad.value(), '18,5');
   pad.key('Enter');
@@ -188,6 +190,44 @@ test('physical keypad supports digits, dot/comma, Delete, Backspace and Enter wi
   assert.deepEqual(pad.confirmed, ['2'], 'Repeated confirmation must not propagate twice');
 });
 
+test('integer mode blocks both separators and will not confirm an invalid existing value', () => {
+  const pad = keypad({ mode: 'integer', value: '4.5' });
+  assert.equal(named(pad.render(), 'Vírgula decimal'), undefined);
+  assert.equal(named(pad.render(), 'Confirmar').props.disabled, true);
+  assert.equal(pad.key(','), true);
+  assert.equal(pad.key('.'), true);
+  assert.equal(pad.value(), '4,5');
+  pad.key('Enter');
+  assert.deepEqual(pad.confirmed, []);
+  pad.key('8');
+  pad.key(',');
+  pad.key('.');
+  assert.equal(pad.value(), '8');
+  pad.key('Enter');
+  assert.deepEqual(pad.confirmed, ['8']);
+
+  const { confirmNumericEntry } = loadModule('src/utils/setNumericEntry.ts');
+  assert.equal(confirmNumericEntry('9007199254740992', 'integer'), null);
+  const overflow = keypad({ mode: 'integer' });
+  for (const key of '9007199254740992') overflow.key(key);
+  assert.equal(overflow.value(), '9007199254740992');
+  assert.equal(named(overflow.render(), 'Confirmar').props.disabled, true);
+  assert.equal(confirmNumericEntry('0', 'integer'), '0');
+  assert.equal(confirmNumericEntry('', 'integer'), '');
+});
+
+test('saved cardio numbers reopen and confirm without losing precision, including exponent notation', () => {
+  const { numberToDecimalString } = loadModule('src/utils/setNumericEntry.ts');
+  for (const saved of [0, 5.512345678901234, 1.23e-9, 1.23e21, Number.MIN_VALUE, Number.MAX_VALUE]) {
+    const initial = numberToDecimalString(saved);
+    assert.match(initial, /^\d+(?:\.\d+)?$/);
+    const pad = keypad({ value: initial });
+    assert.equal(pad.value(), initial.replace('.', ','));
+    pad.click('Confirmar');
+    assert.equal(Number(pad.confirmed[0]), saved);
+  }
+});
+
 test('native modal isolates focus, prevents background scrolling and returns focus without scrolling', () => {
   const calls = [];
   class Element {
@@ -197,7 +237,7 @@ test('native modal isolates focus, prevents background scrolling and returns foc
   const previous = new Element();
   const doc = { activeElement: previous, documentElement: { style: { overflow: 'auto' } } };
   const view = renderComponent('src/components/SetNumericKeypad.tsx', 'SetNumericKeypad', {
-    exerciseName: 'Supino', seriesNumber: 1, field: 'load', value: '', onConfirm() {}, onCancel() {},
+    title: 'Supino', context: 'Série 1', label: 'Carga', unit: 'kg', value: '', onConfirm() {}, onCancel() {},
   }, { document: doc, HTMLElement: Element });
   const tree = view.render();
   tree.ref.current = { showModal: () => calls.push('modal'), close: () => calls.push('close') };

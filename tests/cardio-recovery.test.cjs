@@ -62,6 +62,22 @@ test('continuous recovery saves corrected timestamps and optional metadata witho
   assert.equal(recover(running, 0, 45, Date.parse('2026-09-15T23:00:00Z')).finishedAt, '2026-09-15T18:45:00.000Z');
 });
 
+test('treadmill recovery preserves the chosen activity and optional data', () => {
+  const now = start + 3 * 60 * 60000;
+  for (const treadmillActivity of [undefined, 'walking', 'running', 'mixed']) {
+    const active = { ...draft, modality: 'treadmill', treadmillActivity, distanceKm: 2.34567, averageSpeedKmH: 5.5, resistance: 0 };
+    const saved = recover(active, 0, 40, now);
+    assert.equal(saved.workoutName, 'Esteira');
+    assert.equal(saved.modality, 'treadmill');
+    assert.equal(saved.treadmillActivity, treadmillActivity);
+    assert.equal(saved.distanceKm, 2.34567);
+    assert.equal(saved.averageSpeedKmH, 5.5);
+    assert.equal(saved.resistance, 0);
+    assert.equal(new Date(saved.finishedAt).getTime(), start + 40 * 60000);
+    assert.equal(saved.completionSource, 'stale-recovery');
+  }
+});
+
 test('recovery preserves 7/10 and optional data independently of duration', () => {
   const active = { ...draft, modality: 'spinning', distanceKm: 12, resistance: 0, notes: 'Teste', averageSpeedKmH: 20,
     intervals: { targetCount: 10, durationSeconds: 30, completedCount: 7 } };

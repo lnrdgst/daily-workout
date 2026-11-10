@@ -39,28 +39,29 @@ function descendants(node) {
   return [node, ...[node.props?.children].flat(Infinity).flatMap(descendants)];
 }
 
-test('shared duration stepper clamps buttons, keeps edits until blur and has no hours ceiling', () => {
+test('the integer duration stepper clamps its buttons and opens a keypad without changing the value', () => {
   const { IntegerStepper } = loadModule('src/components/IntegerStepper.tsx', { react: { useId: () => 'duration-test' } });
   let value = '0';
-  const render = (max) => descendants(IntegerStepper({ label: 'Minutos', decreaseLabel: 'Diminuir minutos', increaseLabel: 'Aumentar minutos', value, max, onChange: (next) => { value = next; } }));
-  const input = (max) => render(max).find((node) => node.type === 'input');
+  let opened = 0;
+  const render = (max) => descendants(IntegerStepper({
+    label: 'Minutos', decreaseLabel: 'Diminuir minutos', increaseLabel: 'Aumentar minutos', value, max,
+    editor: { label: 'Editar duração', mode: 'integer', open: () => opened++ },
+    onChange: (next) => { value = next; },
+  }));
   const click = (label, max) => render(max).find((node) => node.props?.['aria-label'] === label).props.onClick();
   click('Diminuir minutos', 59); assert.equal(value, '0');
   click('Aumentar minutos', 59); assert.equal(value, '1');
   value = '59'; click('Aumentar minutos', 59); assert.equal(value, '59');
-  input(59).props.onChange({ target: { value: '80' } }); assert.equal(value, '80');
-  input(59).props.onBlur(); assert.equal(value, '59');
-  input(59).props.onChange({ target: { value: '' } }); input(59).props.onBlur(); assert.equal(value, '');
-  click('Aumentar minutos', 59); assert.equal(value, '1');
-  value = '2'; click('Aumentar minutos'); assert.equal(value, '3');
-  value = '250'; input().props.onBlur(); assert.equal(value, '250');
-  assert.equal(input().props.type, 'text');
-  assert.equal(input().props.inputMode, 'numeric');
+  value = ''; click('Aumentar minutos', 59); assert.equal(value, '1');
+  value = '250'; click('Aumentar minutos'); assert.equal(value, '251');
+  value = '80'; click('Editar duração', 59); assert.equal(value, '80');
+  assert.equal(opened, 1);
+  assert.ok(!render(59).some((node) => node.type === 'input'));
 });
 
 function row(initialReps) {
   let set = { reps: initialReps, load: '', completed: false };
-  const { SetRow } = loadModule('src/components/SetRow.tsx', { react: { useId: () => 'reps-test', useState: (value) => [value, () => {}], useEffect: () => {} } });
+  const { SetRow } = loadModule('src/components/SetRow.tsx', { react: { createContext: require('react').createContext, useId: () => 'reps-test', useState: (value) => [value, () => {}], useEffect: () => {} } });
   const render = () => descendants(SetRow({ index: 0, exerciseName: 'Supino reto', isNextPending: true, set, onChange: (patch) => { set = { ...set, ...patch }; } }));
   return {
     value: () => set,

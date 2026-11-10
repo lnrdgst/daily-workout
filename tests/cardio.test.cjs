@@ -37,7 +37,7 @@ test('legacy strength state is loaded intact, without adding type or rewriting h
   assert.equal(writes, 0);
 });
 
-test('all five modalities start continuous sessions and save without optional fields or intervals', () => {
+test('all modalities start continuous sessions and save without optional fields or intervals', () => {
   for (const modality of Object.keys(load('src/data/cardio.ts').cardioModalities)) {
     const draft = cardio.createCardioDraft(modality);
     assert.equal(draft.type, 'cardio');
@@ -47,8 +47,72 @@ test('all five modalities start continuous sessions and save without optional fi
     const saved = cardio.buildCardioHistoryEntry(draft, end);
     assert.equal(new Date(saved.finishedAt) - new Date(saved.startedAt), 40 * 60000);
     assert.equal(saved.intervals, undefined);
+    assert.equal(saved.distanceKm, undefined);
+    assert.equal(saved.averageSpeedKmH, undefined);
+    assert.ok(!('treadmillActivity' in saved));
     assert.ok(!('intervalEndAt' in saved));
   }
+});
+
+test('treadmill is a separate modality and its optional activity and metrics round-trip through storage', () => {
+  const { cardioModalities, treadmillActivities } = load('src/data/cardio.ts');
+  assert.equal(cardioModalities.treadmill, 'Esteira');
+  assert.equal(cardioModalities.walking, 'Caminhada');
+  assert.equal(cardioModalities.running, 'Corrida');
+  assert.deepEqual(treadmillActivities, { walking: 'Caminhada', running: 'Corrida', mixed: 'Caminhada e corrida' });
+
+  for (const treadmillActivity of Object.keys(treadmillActivities)) {
+    const draft = cardio.createCardioDraft('treadmill');
+    const updated = cardio.updateCardioData(draft, { treadmillActivity, distanceKm: 2.34567, averageSpeedKmH: 5.5, resistance: 0 });
+    const json = JSON.stringify({ activeDraft: updated, history: [] });
+    const reader = load('src/utils/storage.ts', { localStorage: { getItem: () => json } });
+    assert.deepEqual(reader.loadAppState().activeDraft, updated);
+    const history = cardio.buildCardioHistoryEntry(reader.loadAppState().activeDraft);
+    assert.equal(history.modality, 'treadmill');
+    assert.equal(history.workoutName, 'Esteira');
+    assert.equal(history.treadmillActivity, treadmillActivity);
+    assert.equal(history.distanceKm, 2.34567);
+    assert.equal(history.averageSpeedKmH, 5.5);
+    assert.equal(history.resistance, 0);
+  }
+});
+
+test('cardio updates reject invalid values, distinguish empty and zero, and keep treadmill activity scoped', () => {
+  const draft = cardio.createCardioDraft('treadmill');
+  for (const patch of [{ distanceKm: -1 }, { averageSpeedKmH: Infinity }, { resistance: NaN }, { resistance: null },
+    { averageSpeedKmH: '5.5' }, { treadmillActivity: 'invalid' }]) {
+    assert.equal(cardio.updateCardioData(draft, patch), draft);
+  }
+  const filled = cardio.updateCardioData(draft, { distanceKm: 0, resistance: 1.5, treadmillActivity: 'mixed' });
+  assert.equal(filled.distanceKm, 0);
+  assert.equal(filled.resistance, 1.5);
+  const cleared = JSON.parse(JSON.stringify(cardio.updateCardioData(filled, { distanceKm: undefined, treadmillActivity: undefined })));
+  assert.ok(!('distanceKm' in cleared));
+  assert.ok(!('treadmillActivity' in cleared));
+  assert.equal(cleared.resistance, 1.5);
+  const walking = cardio.createCardioDraft('walking');
+  assert.equal(cardio.updateCardioData(walking, { treadmillActivity: 'walking' }), walking);
+});
+
+test('legacy walking and running data load intact, including active drafts and optional numeric values', () => {
+  const history = ['walking', 'running'].map((modality) => cardio.buildCardioHistoryEntry({
+    ...cardio.createCardioDraft(modality), distanceKm: 1.23456, averageSpeedKmH: 5.5, resistance: 0,
+  }));
+  for (const modality of ['walking', 'running']) {
+    const oldDraft = { ...cardio.createCardioDraft(modality), distanceKm: 2.5, notes: 'Legado' };
+    const json = JSON.stringify({ activeDraft: oldDraft, history });
+    const reader = load('src/utils/storage.ts', { localStorage: { getItem: () => json, setItem: () => assert.fail('Unexpected write') } });
+    const state = reader.loadAppState();
+    assert.deepEqual(state.activeDraft, oldDraft);
+    assert.deepEqual(state.history, JSON.parse(json).history);
+  }
+});
+
+test('treadmill does not change the ABCDE strength sequence', () => {
+  const { workouts } = load('src/data/workouts.ts');
+  const treadmill = cardio.buildCardioHistoryEntry(cardio.createCardioDraft('treadmill'));
+  const history = workouts.flatMap((workout) => [storage.buildHistoryEntry(storage.createWorkoutDraft(workout)), treadmill]);
+  assert.deepEqual(getWorkoutSequenceProgress(history, 'ABCDE'), { completedSequences: 1, currentStep: 0 });
 });
 
 test('interval uses a timestamp, completes once after suspension and leaves total startedAt unchanged', () => {

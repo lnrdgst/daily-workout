@@ -13,7 +13,7 @@ import {
   saveAppState,
 } from '@/utils/storage';
 import { primeRestAlertSound, triggerRestFinishedAlerts, triggerIntervalFinishedAlerts } from '@/utils/restAlerts';
-import { buildCardioHistoryEntry, configureIntervals, createCardioDraft, isShortCardioSession, markInterval, removeIntervals, settleInterval, startInterval, undoInterval } from '@/utils/cardioSession';
+import { buildCardioHistoryEntry, configureIntervals, createCardioDraft, isShortCardioSession, markInterval, removeIntervals, settleInterval, startInterval, undoInterval, updateCardioData } from '@/utils/cardioSession';
 import { isStrengthHistory } from '@/utils/sessions';
 import { undoCompletedSet } from '@/utils/setCompletion';
 import { loadRestAlertSettings } from '@/utils/restAlertSettings';
@@ -156,7 +156,7 @@ export const WorkoutStoreProvider = ({ children }: PropsWithChildren) => {
         stateRef.current = next;
         setState(next);
       },
-      updateCardio: (patch) => changeCardio((draft) => ({ ...draft, ...patch })),
+      updateCardio: (patch) => changeCardio((draft) => updateCardioData(draft, patch)),
       configureCardioIntervals: (targetCount, durationSeconds) => changeCardio((draft) => configureIntervals(draft, targetCount, durationSeconds)),
       startCardioInterval: () => {
         primeRestAlertSound();

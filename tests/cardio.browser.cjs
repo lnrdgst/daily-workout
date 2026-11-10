@@ -64,6 +64,19 @@ async function main() {
   });
   const state = () => page.evaluate(() => JSON.parse(localStorage.getItem('daily-workout-state')));
   const click = (name) => page.getByRole('button', { name, exact: true }).click();
+  const numericTrigger = (label) => page.getByRole('button', { name: label });
+  const openNumber = async (label) => {
+    await numericTrigger(label).click();
+    const pad = page.locator('dialog[open]');
+    await pad.waitFor();
+    return pad;
+  };
+  const setNumber = async (label, value) => {
+    const pad = await openNumber(label);
+    for (const key of value) await page.keyboard.press(key);
+    await pad.getByRole('button', { name: 'Confirmar', exact: true }).click();
+    await pad.waitFor({ state: 'hidden' });
+  };
   const noOverflow = async () => assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false, 'mobile page overflow');
   const waitCount = (count) => page.waitForFunction((expected) => JSON.parse(localStorage.getItem('daily-workout-state')).activeDraft.intervals.completedCount === expected, count);
   const finish = async () => {
@@ -157,7 +170,7 @@ async function main() {
     await page.clock.runFor(35 * 60000);
     assert.equal(await page.getByRole('dialog').count(), 0, 'no stale strength prompt for cardio');
     assert.ok((await page.locator('body').innerText()).includes('35:00'));
-    await page.getByLabel('Distância (km)', { exact: true }).fill('12.4');
+    await setNumber(/^Distância \(km\)\./, '12.4');
     await noOverflow();
     await page.locator('body').click({ position: { x: 4, y: 4 } });
     await page.evaluate(() => window.scrollTo(0, 0));
@@ -180,8 +193,16 @@ async function main() {
     await page.goto(`${baseURL}/cardio/stationary-bike`);
     await click('Iniciar treino');
     await click('Configurar tiros');
-    await page.getByLabel('Quantidade', { exact: true }).fill('10');
-    await page.getByLabel('Duração (s)', { exact: true }).fill('30');
+    const integerPad = await openNumber(/^Quantidade\./);
+    assert.equal(await integerPad.getByRole('button', { name: 'Vírgula decimal' }).count(), 0);
+    await page.keyboard.press('1');
+    await page.keyboard.press(',');
+    await page.keyboard.press('0');
+    await integerPad.getByRole('button', { name: 'Confirmar', exact: true }).click();
+    await setNumber(/^Duração \(s\)\./, '86401');
+    assert.equal(await page.getByRole('button', { name: 'Salvar tiros', exact: true }).isEnabled(), false);
+    await page.getByText('Informe de 1 a 86.400 segundos.', { exact: true }).waitFor();
+    await setNumber(/^Duração \(s\)\./, '30');
     await click('Salvar tiros');
     const totalStart = (await state()).activeDraft.startedAt;
     await click('Iniciar tiro');
@@ -372,7 +393,7 @@ async function main() {
 
     await page.goto(`${baseURL}/cardio/spinning`);
     await click('Iniciar treino');
-    await page.getByLabel('Distância (km)', { exact: true }).fill('4.5');
+    await setNumber(/^Distância \(km\)\./, '4.5');
     const continuousStart = (await state()).activeDraft.startedAt;
     await click('Configurar tiros'); await click('Salvar tiros'); await click('Editar planejamento');
     await click('Remover tiros');
@@ -416,6 +437,105 @@ async function main() {
     await page.getByText(displayedTime, { exact: true }).waitFor();
     assert.deepEqual(errors, []);
     console.log('PASS short cardio discard with completed shots, contextual finish, removal/cancel/running removal, persistence and consistent last-session timing');
+    await page.goto(baseURL);
+    await openSelector();
+    await cardioCategory.click();
+    const treadmillLink = dialog.getByRole('link', { name: 'Esteira', exact: true });
+    await dialog.getByRole('link', { name: 'Caminhada', exact: true }).waitFor();
+    await dialog.getByRole('link', { name: 'Corrida', exact: true }).waitFor();
+    await treadmillLink.click();
+    await page.waitForURL('**/cardio/treadmill');
+    await click('Iniciar treino');
+    const classification = page.getByLabel('Tipo de atividade na esteira');
+    assert.equal(await classification.inputValue(), '');
+    for (const [label, value] of [['Caminhada', 'walking'], ['Corrida', 'running'], ['Caminhada e corrida', 'mixed']]) {
+      await classification.selectOption({ label });
+      assert.equal((await state()).activeDraft.treadmillActivity, value);
+    }
+    await page.screenshot({ path: 'dist/cardio-qa/artifacts/treadmill-320.png', fullPage: true, animations: 'disabled' });
+
+    const speed = /^Velocidade média \(km\/h\)\./;
+    const distance = /^Distância \(km\)\./;
+    const resistance = /^Resistência\./;
+    const pad = await openNumber(speed);
+    const output = pad.locator('output');
+    assert.equal(await output.evaluate((element) => document.activeElement === element), true);
+    assert.equal(await page.evaluate(() => document.documentElement.style.overflow), 'hidden');
+    assert.equal(await pad.locator('input, textarea, [contenteditable]').count(), 0);
+    await page.keyboard.press('Tab');
+    assert.equal(await pad.evaluate((element) => element.contains(document.activeElement)), true);
+    for (const key of ['5', 'Vírgula decimal', '5']) await pad.getByRole('button', { name: key, exact: true }).tap();
+    assert.match(await output.innerText(), /5,5/);
+    assert.equal((await state()).activeDraft.averageSpeedKmH, undefined);
+    await noOverflow();
+    const bounds = await pad.boundingBox();
+    assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= 320 && bounds.y + bounds.height <= 800);
+    const confirm = pad.getByRole('button', { name: 'Confirmar', exact: true });
+    const confirmBounds = await confirm.boundingBox();
+    assert.ok(confirmBounds.height >= 44 && confirmBounds.y + confirmBounds.height < 800);
+    await page.screenshot({ path: 'dist/cardio-qa/artifacts/treadmill-keypad-320.png', animations: 'disabled' });
+    await confirm.click();
+    assert.equal(await numericTrigger(speed).evaluate((element) => document.activeElement === element), true);
+    assert.equal(await page.evaluate(() => document.documentElement.style.overflow), '');
+    assert.equal((await state()).activeDraft.averageSpeedKmH, 5.5);
+
+    await openNumber(speed);
+    await page.keyboard.press('9');
+    await page.keyboard.press('Escape');
+    await pad.waitFor({ state: 'hidden' });
+    assert.equal(await numericTrigger(speed).evaluate((element) => document.activeElement === element), true);
+    assert.equal((await state()).activeDraft.averageSpeedKmH, 5.5);
+    await setNumber(distance, '2.3456789');
+    await setNumber(resistance, '0');
+    assert.equal((await state()).activeDraft.resistance, 0);
+    await page.reload();
+    assert.equal(await classification.inputValue(), 'mixed');
+    assert.match(await numericTrigger(distance).innerText(), /2,3456789/);
+    await openNumber(distance);
+    assert.match(await output.innerText(), /2,3456789/);
+    await confirm.click();
+    assert.equal((await state()).activeDraft.distanceKm, 2.3456789);
+    await openNumber(resistance);
+    await pad.getByRole('button', { name: 'Limpar', exact: true }).click();
+    assert.equal((await state()).activeDraft.resistance, 0);
+    await confirm.click();
+    assert.ok(!('resistance' in (await state()).activeDraft));
+
+    await page.setViewportSize({ width: 320, height: 360 });
+    await openNumber(speed);
+    assert.ok(await pad.evaluate((element) => element.scrollHeight > element.clientHeight));
+    await confirm.scrollIntoViewIfNeeded();
+    assert.ok(await pad.evaluate((element) => element.scrollTop > 0));
+    await page.keyboard.press('Escape');
+    await page.setViewportSize({ width: 320, height: 800 });
+    const beforeTreadmill = await state();
+    await page.clock.runFor(61000);
+    await finish();
+    const afterTreadmill = await state();
+    const mixed = afterTreadmill.history.at(-1);
+    assert.equal(mixed.modality, 'treadmill');
+    assert.equal(mixed.treadmillActivity, 'mixed');
+    assert.equal(mixed.averageSpeedKmH, 5.5);
+    assert.equal(mixed.distanceKm, 2.3456789);
+    assert.equal(afterTreadmill.lastCompletedWorkoutId, beforeTreadmill.lastCompletedWorkoutId);
+    assert.deepEqual(afterTreadmill.history.slice(0, -1), beforeTreadmill.history);
+    await page.getByRole('button', { name: /Esteira.*Contínuo/ }).click();
+    await page.getByText('Caminhada e corrida', { exact: true }).waitFor();
+    await page.getByText('5,5 km/h', { exact: true }).waitFor();
+    await page.getByText('2,3456789 km', { exact: true }).waitFor();
+
+    await page.goto(`${baseURL}/cardio/treadmill`);
+    await click('Iniciar treino');
+    assert.equal(await classification.inputValue(), '');
+    await page.clock.runFor(61000);
+    await finish();
+    const unclassified = (await state()).history.at(-1);
+    assert.equal(unclassified.modality, 'treadmill');
+    for (const key of ['treadmillActivity', 'distanceKm', 'averageSpeedKmH', 'resistance', 'intervals']) {
+      assert.ok(!(key in unclassified));
+    }
+    assert.deepEqual(errors, []);
+    console.log('PASS treadmill classification, decimal keypad, focus, scroll, numeric persistence and optional metrics at 320px');
   } finally {
     await browser.close();
   }

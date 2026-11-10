@@ -84,7 +84,7 @@ async function main() {
     assert.deepEqual(await persisted(), initial);
     console.log('PASS picker strength return, focus restoration, close and consumed signal');
 
-    for (const modality of ['stationary-bike', 'spinning', 'running', 'walking', 'outdoor-bike']) {
+    for (const modality of ['stationary-bike', 'spinning', 'running', 'walking', 'outdoor-bike', 'treadmill']) {
       await openSelector();
       await page.locator('#cardio-category-heading').click();
       await select(`/cardio/${modality}`);

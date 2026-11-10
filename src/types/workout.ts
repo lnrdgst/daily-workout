@@ -126,13 +126,15 @@ export interface WorkoutSessionHistory {
   }>;
 }
 
-export type CardioModality = 'stationary-bike' | 'spinning' | 'running' | 'walking' | 'outdoor-bike';
+export type CardioModality = 'stationary-bike' | 'spinning' | 'running' | 'walking' | 'outdoor-bike' | 'treadmill';
+export type TreadmillActivity = 'walking' | 'running' | 'mixed';
 
 export interface CardioData {
   distanceKm?: number;
   averageSpeedKmH?: number;
   resistance?: number;
   notes?: string;
+  treadmillActivity?: TreadmillActivity;
 }
 
 export interface CardioIntervals {

@@ -1,9 +1,16 @@
-import { cardioModalities } from '@/data/cardio';
-import type { CardioModality, CardioSessionDraft, CardioSessionHistory } from '@/types/workout';
+import { cardioModalities, isTreadmillActivity } from '@/data/cardio';
+import type { CardioData, CardioModality, CardioSessionDraft, CardioSessionHistory } from '@/types/workout';
 
 export const createCardioDraft = (modality: CardioModality): CardioSessionDraft => ({
   type: 'cardio', modality, startedAt: new Date().toISOString(), intervalEndAt: null,
 });
+
+export const updateCardioData = (draft: CardioSessionDraft, patch: Partial<CardioData>): CardioSessionDraft => {
+  const { distanceKm, averageSpeedKmH, resistance, treadmillActivity } = patch;
+  if ([distanceKm, averageSpeedKmH, resistance].some((value) => value !== undefined && (!Number.isFinite(value) || value < 0))) return draft;
+  if (treadmillActivity !== undefined && (draft.modality !== 'treadmill' || !isTreadmillActivity(treadmillActivity))) return draft;
+  return { ...draft, ...patch };
+};
 
 export const isShortCardioSession = (draft: Pick<CardioSessionDraft, 'startedAt'>, now = Date.now()): boolean =>
   now - new Date(draft.startedAt).getTime() < 60000;
@@ -46,5 +53,6 @@ export const buildCardioHistoryEntry = (draft: CardioSessionDraft, now = Date.no
     workoutName: cardioModalities[draft.modality], startedAt: draft.startedAt, finishedAt: new Date(now).toISOString(),
     distanceKm: draft.distanceKm, averageSpeedKmH: draft.averageSpeedKmH, resistance: draft.resistance,
     notes: draft.notes, intervals: settled.intervals,
+    ...(draft.modality === 'treadmill' && draft.treadmillActivity && { treadmillActivity: draft.treadmillActivity }),
   };
 };
