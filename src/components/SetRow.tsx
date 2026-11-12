@@ -25,7 +25,7 @@ export const SetRow = ({ index, exerciseName, isNextPending, set, previousSet, o
         <div>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <p className="text-sm font-medium text-zinc-100">Série {index + 1}</p>
-            {isNextPending && <span className="text-xs text-zinc-400">Próxima série</span>}
+            {isNextPending && <span className="text-xs text-amber-400">Próxima série</span>}
           </div>
           <p className="text-xs text-zinc-500">
             Anterior: {formatSetNumber(previousSet?.load ?? '') || '-'} kg • {formatSetNumber(previousSet?.reps ?? '') || '-'} reps
