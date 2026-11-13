@@ -26,7 +26,7 @@ export const ExerciseCard = ({
   secondaryAction,
 }: ExerciseCardProps) => {
   const completedSets = sessionState.sets.filter((set) => set.completed).length;
-  const nextPendingIndex = sessionState.sets.findIndex((set) => !set.completed);
+  const nextPendingIndex = completedSets > 0 ? sessionState.sets.findIndex((set) => !set.completed) : -1;
   const isCompleted = sessionState.sets.length > 0 && completedSets === sessionState.sets.length;
   const [isExpanded, setIsExpanded] = useState(() => !isCompleted);
   const wasCompletedRef = useRef(isCompleted);

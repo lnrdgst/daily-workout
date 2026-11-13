@@ -359,17 +359,18 @@ test('plus/minus preserve decimal digits with exact steps of one and clamp only 
   assert.equal(editor.api().state.activeDraft.exercises[0].sets[0].reps, '18.5');
 });
 
-test('the next pending badge moves after mark/unmark, stays unique and disappears when all sets are complete', () => {
+test('only a partially completed exercise labels its first pending set', () => {
   const props = {
     exercise: { id: 'bench', name: 'Supino', muscleGroup: 'Peito', sets: 3, repsMin: 8, repsMax: 12 },
     sessionState: { exerciseId: 'bench', sets: [false,false,false].map((completed) => ({ load: '', reps: '8', completed })) }, previousSets: null,
   };
   const card = renderComponent('src/components/ExerciseCard.tsx', 'ExerciseCard', props);
   const pending = () => nodes(card.render(props)).filter((n) => n.type?.name === 'SetRow' && n.props.isNextPending).map((n) => n.props.index);
-  assert.deepEqual(pending(), [0]);
+  assert.deepEqual(pending(), []);
   props.sessionState.sets[2].completed = true; assert.deepEqual(pending(), [0]);
   props.sessionState.sets[0].completed = true; assert.deepEqual(pending(), [1]);
   props.sessionState.sets[0].completed = false; assert.deepEqual(pending(), [0]);
+  props.sessionState.sets[2].completed = false; assert.deepEqual(pending(), []);
   props.sessionState.sets.forEach((s) => { s.completed = true; }); assert.deepEqual(pending(), []);
 });
 

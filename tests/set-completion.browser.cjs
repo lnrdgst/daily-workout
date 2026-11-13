@@ -20,7 +20,8 @@ async function main() {
   const state = () => page.evaluate(() => JSON.parse(localStorage.getItem('daily-workout-state')));
   const click = (name) => page.getByRole('button', { name, exact: true }).click();
   const action = (name) => page.getByRole('dialog').getByRole('button', { name, exact: true }).click();
-  const firstExercise = () => page.locator('article').filter({ has: page.getByRole('heading', { name: 'Puxada frontal', exact: true }) });
+  const exerciseCard = (name) => page.locator('article').filter({ has: page.getByRole('heading', { name, exact: true }) });
+  const firstExercise = () => exerciseCard('Puxada frontal');
   const mark = () => firstExercise().getByRole('button', { name: 'Marcar', exact: true }).first().click();
   const openUndo = () => firstExercise().getByRole('button', { name: 'Feita', exact: true }).first().click();
   const relatedAction = () => page.getByRole('dialog').getByRole('button', { name: 'Desmarcar e cancelar descanso', exact: true });
@@ -135,9 +136,21 @@ async function main() {
     console.log('PASS navigation, reload, persisted ownership and persisted undo without browser exceptions');
 
     await reset(false);
-    const visualSeries = () => firstExercise().locator('div.rounded-2xl').filter({ has: page.getByText(/^Série \d$/) });
+    const visualSeries = (exercise = firstExercise()) => exercise.locator('div.rounded-2xl').filter({ has: page.getByText(/^Série \d$/) });
+    const nextSeries = () => page.getByText('Próxima série', { exact: true });
+    const assertNextSeries = async (...expectedRows) => {
+      assert.equal(await nextSeries().count(), expectedRows.length, 'only partially completed exercises have a next-set label');
+      for (const row of expectedRows) {
+        const label = row.getByText('Próxima série', { exact: true });
+        assert.equal(await label.isVisible(), true);
+        assert.equal(await row.getByRole('button', { name: 'Marcar', exact: true }).count(), 1);
+        assert.match(await label.getAttribute('class'), /\btext-amber-400\b/);
+      }
+    };
+    await assertNextSeries();
     assert.match(await visualSeries().nth(0).getAttribute('class'), /border-white\/10/);
     await mark();
+    await assertNextSeries(visualSeries().nth(1));
     assert.match(await visualSeries().nth(0).getAttribute('class'), /border-accent-500/);
     assert.match(await visualSeries().nth(1).getAttribute('class'), /border-white\/10/);
     await page.screenshot({ path: 'dist/cardio-qa/artifacts/completed-series-320.png', fullPage: true, animations: 'disabled' });
@@ -145,16 +158,34 @@ async function main() {
     for (const key of ['4', '0', 'Confirmar']) await action(key);
     assert.equal((await state()).activeDraft.exercises[0].sets[0].load, '40');
     await mark();
+    await assertNextSeries(visualSeries().nth(2));
     assert.match(await visualSeries().nth(1).getAttribute('class'), /border-accent-500/);
     await mark();
+    await assertNextSeries();
     await page.clock.runFor(600);
     assert.equal(await firstExercise().getByRole('button', { name: /Concluído.*3\/3 séries/ }).getAttribute('aria-expanded'), 'false');
     await firstExercise().getByRole('button', { name: /Concluído.*3\/3 séries/ }).click();
     await firstExercise().getByRole('button', { name: 'Feita', exact: true }).first().click();
     await action('Desmarcar série');
+    await assertNextSeries(visualSeries().nth(0));
     assert.match(await visualSeries().nth(0).getAttribute('class'), /border-white\/10/);
     assert.match(await visualSeries().nth(1).getAttribute('class'), /border-accent-500/);
     console.log('PASS 0/3, 1/3, 2/3, 3/3 visual states, editable completed input and undo');
+
+    const otherSeries = visualSeries(exerciseCard('Remada curvada'));
+    await otherSeries.nth(2).getByRole('button', { name: 'Marcar', exact: true }).click();
+    await assertNextSeries(visualSeries().nth(0), otherSeries.nth(0));
+    await otherSeries.nth(0).getByRole('button', { name: 'Marcar', exact: true }).click();
+    await assertNextSeries(visualSeries().nth(0), otherSeries.nth(1));
+    await page.reload();
+    await assertNextSeries(visualSeries().nth(0), otherSeries.nth(1));
+    await otherSeries.nth(0).getByRole('button', { name: 'Feita', exact: true }).click();
+    await action('Desmarcar série');
+    await assertNextSeries(visualSeries().nth(0), otherSeries.nth(0));
+    await otherSeries.nth(2).getByRole('button', { name: 'Feita', exact: true }).click();
+    await action('Desmarcar série');
+    await assertNextSeries(visualSeries().nth(0));
+    console.log('PASS independent next-set labels after out-of-order completion, reload and undo');
 
     await reset();
     await page.evaluate(() => {
